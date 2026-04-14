@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "905193143115",
+    "project_id": "palmier-472db",
+    "storage_bucket": "palmier-472db.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:905193143115:android:91566c5f27544a171886ce",
+        "android_client_info": {
+          "package_name": "com.palmier.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD64-W0xuoiYXVHoVtZX8Q9bDSi9itWxOc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
