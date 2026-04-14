@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Palmier</string>
+    <string name="title_activity_main">Palmier</string>
+    <string name="package_name">com.palmier.app</string>
+    <string name="custom_url_scheme">com.palmier.app</string>
+</resources>
