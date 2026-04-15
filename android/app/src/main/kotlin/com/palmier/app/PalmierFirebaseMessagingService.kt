@@ -57,14 +57,14 @@ class PalmierFirebaseMessagingService : FirebaseMessagingService() {
 
     private fun showConfirmNotification(data: Map<String, String>) {
         val hostId = data["host_id"] ?: return
-        val requestId = data["request_id"] ?: return
+        val requestId = data["session_id"] ?: return
         val notificationId = "confirm:$requestId".hashCode()
 
         ensureNotificationChannel()
 
         val confirmIntent = Intent(this, NotificationActionReceiver::class.java).apply {
             action = "com.palmier.app.CONFIRM"
-            putExtra("request_id", requestId)
+            putExtra("session_id", requestId)
             putExtra("host_id", hostId)
             putExtra("notification_id", notificationId)
         }
@@ -75,7 +75,7 @@ class PalmierFirebaseMessagingService : FirebaseMessagingService() {
 
         val abortIntent = Intent(this, NotificationActionReceiver::class.java).apply {
             action = "com.palmier.app.ABORT"
-            putExtra("request_id", requestId)
+            putExtra("session_id", requestId)
             putExtra("host_id", hostId)
             putExtra("notification_id", notificationId)
         }
@@ -113,11 +113,11 @@ class PalmierFirebaseMessagingService : FirebaseMessagingService() {
         val title = data["title"] ?: "Palmier"
         val body = data["body"] ?: return
         val taskId = data["task_id"]
-        val requestId = data["request_id"]
+        val sessionId = data["session_id"]
         val runId = data["run_id"]
 
         val notificationId = when {
-            requestId != null -> "input:$requestId".hashCode()
+            sessionId != null -> "session:$sessionId".hashCode()
             taskId != null -> "task:$taskId".hashCode()
             else -> body.hashCode()
         }
@@ -154,11 +154,11 @@ class PalmierFirebaseMessagingService : FirebaseMessagingService() {
     private fun dismissNotification(data: Map<String, String>) {
         val type = data["type"] ?: return
         val taskId = data["task_id"]
-        val requestId = data["request_id"]
+        val sessionId = data["session_id"]
 
         val notificationId = when {
-            type == "confirm-dismiss" && requestId != null -> "confirm:$requestId".hashCode()
-            type == "input-dismiss" && requestId != null -> "input:$requestId".hashCode()
+            type == "confirm-dismiss" && sessionId != null -> "confirm:$sessionId".hashCode()
+            type == "input-dismiss" && sessionId != null -> "session:$sessionId".hashCode()
             taskId != null -> "task:$taskId".hashCode()
             else -> return
         }

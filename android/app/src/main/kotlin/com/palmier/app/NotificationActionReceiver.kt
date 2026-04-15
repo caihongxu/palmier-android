@@ -15,7 +15,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        val requestId = intent.getStringExtra("request_id") ?: return
+        val requestId = intent.getStringExtra("session_id") ?: return
         val hostId = intent.getStringExtra("host_id") ?: return
         val notificationId = intent.getIntExtra("notification_id", 0)
 
@@ -40,7 +40,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 conn.setRequestProperty("Content-Type", "application/json")
                 conn.doOutput = true
 
-                val json = """{"request_id":"$requestId","host_id":"$hostId","response":"$response"}"""
+                val json = """{"session_id":"$requestId","host_id":"$hostId","response":"$response"}"""
                 conn.outputStream.use { it.write(json.toByteArray()) }
 
                 Log.d(TAG, "Response posted, status: ${conn.responseCode}")
