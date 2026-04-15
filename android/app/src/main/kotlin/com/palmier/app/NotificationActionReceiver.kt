@@ -15,7 +15,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        val taskId = intent.getStringExtra("task_id") ?: return
+        val requestId = intent.getStringExtra("request_id") ?: return
         val hostId = intent.getStringExtra("host_id") ?: return
         val notificationId = intent.getIntExtra("notification_id", 0)
 
@@ -25,7 +25,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
             else -> return
         }
 
-        Log.d(TAG, "Action: $response for task $taskId")
+        Log.d(TAG, "Action: $response for request $requestId")
 
         // Cancel the notification
         context.getSystemService(NotificationManager::class.java).cancel(notificationId)
@@ -40,7 +40,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 conn.setRequestProperty("Content-Type", "application/json")
                 conn.doOutput = true
 
-                val json = """{"task_id":"$taskId","host_id":"$hostId","response":"$response"}"""
+                val json = """{"request_id":"$requestId","host_id":"$hostId","response":"$response"}"""
                 conn.outputStream.use { it.write(json.toByteArray()) }
 
                 Log.d(TAG, "Response posted, status: ${conn.responseCode}")

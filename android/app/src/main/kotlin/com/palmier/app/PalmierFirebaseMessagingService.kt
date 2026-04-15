@@ -57,14 +57,14 @@ class PalmierFirebaseMessagingService : FirebaseMessagingService() {
 
     private fun showConfirmNotification(data: Map<String, String>) {
         val hostId = data["host_id"] ?: return
-        val taskId = data["task_id"] ?: return
-        val notificationId = "task:$taskId".hashCode()
+        val requestId = data["request_id"] ?: return
+        val notificationId = "confirm:$requestId".hashCode()
 
         ensureNotificationChannel()
 
         val confirmIntent = Intent(this, NotificationActionReceiver::class.java).apply {
             action = "com.palmier.app.CONFIRM"
-            putExtra("task_id", taskId)
+            putExtra("request_id", requestId)
             putExtra("host_id", hostId)
             putExtra("notification_id", notificationId)
         }
@@ -75,7 +75,7 @@ class PalmierFirebaseMessagingService : FirebaseMessagingService() {
 
         val abortIntent = Intent(this, NotificationActionReceiver::class.java).apply {
             action = "com.palmier.app.ABORT"
-            putExtra("task_id", taskId)
+            putExtra("request_id", requestId)
             putExtra("host_id", hostId)
             putExtra("notification_id", notificationId)
         }
@@ -92,10 +92,13 @@ class PalmierFirebaseMessagingService : FirebaseMessagingService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val title = data["title"] ?: "Confirmation Required"
+        val body = data["body"] ?: "A task requires confirmation to run."
+
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("Confirmation Required")
-            .setContentText("A task requires confirmation to run.")
+            .setContentTitle(title)
+            .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(tapPending)
