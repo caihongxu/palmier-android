@@ -1,7 +1,11 @@
 package com.palmier.app
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Intent
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import java.net.HttpURLConnection
@@ -12,31 +16,160 @@ class PalmierFirebaseMessagingService : FirebaseMessagingService() {
     companion object {
         private const val TAG = "PalmierFCM"
         private const val PREFS_NAME = "CapacitorStorage"
+        const val CHANNEL_ID = "palmier_tasks"
     }
 
     override fun onNewToken(token: String) {
         Log.d(TAG, "New FCM token: $token")
-        // Save to SharedPreferences so the web layer can read it via Capacitor Preferences
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putString("fcmToken", token).apply()
         registerTokenWithServer(token)
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         val data = remoteMessage.data
-        if (data["type"] == "geolocation-request") {
-            val requestId = data["requestId"]
-            val hostId = data["hostId"]
+        val type = data["type"] ?: return
 
-            if (requestId != null && hostId != null) {
-                Log.d(TAG, "Geolocation request: $requestId")
-                val intent = Intent(this, GeolocationForegroundService::class.java).apply {
-                    putExtra("requestId", requestId)
-                    putExtra("hostId", hostId)
-                    putExtra("serverUrl", MainActivity.SERVER_URL)
-                }
-                startForegroundService(intent)
-            }
+        Log.d(TAG, "Received message type: $type")
+
+        when (type) {
+            "geolocation-request" -> handleGeolocation(data)
+
+            "confirm" -> showConfirmNotification(data)
+
+            "permission", "input", "complete", "fail", "notification" -> showNotification(data)
+
+            "confirm-dismiss", "permission-dismiss", "input-dismiss" -> dismissNotification(data)
         }
+    }
+
+    private fun handleGeolocation(data: Map<String, String>) {
+        val requestId = data["requestId"] ?: return
+        val hostId = data["hostId"] ?: return
+
+        Log.d(TAG, "Geolocation request: $requestId")
+        val intent = Intent(this, GeolocationForegroundService::class.java).apply {
+            putExtra("requestId", requestId)
+            putExtra("hostId", hostId)
+            putExtra("serverUrl", MainActivity.SERVER_URL)
+        }
+        startForegroundService(intent)
+    }
+
+    private fun showConfirmNotification(data: Map<String, String>) {
+        val hostId = data["host_id"] ?: return
+        val taskId = data["task_id"] ?: return
+        val notificationId = "task:$taskId".hashCode()
+
+        ensureNotificationChannel()
+
+        val confirmIntent = Intent(this, NotificationActionReceiver::class.java).apply {
+            action = "com.palmier.app.CONFIRM"
+            putExtra("task_id", taskId)
+            putExtra("host_id", hostId)
+            putExtra("notification_id", notificationId)
+        }
+        val confirmPending = PendingIntent.getBroadcast(
+            this, notificationId, confirmIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val abortIntent = Intent(this, NotificationActionReceiver::class.java).apply {
+            action = "com.palmier.app.ABORT"
+            putExtra("task_id", taskId)
+            putExtra("host_id", hostId)
+            putExtra("notification_id", notificationId)
+        }
+        val abortPending = PendingIntent.getBroadcast(
+            this, notificationId + 1, abortIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val tapIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val tapPending = PendingIntent.getActivity(
+            this, notificationId + 2, tapIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("Confirmation Required")
+            .setContentText("A task requires confirmation to run.")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(tapPending)
+            .addAction(0, "Confirm", confirmPending)
+            .addAction(0, "Abort", abortPending)
+            .build()
+
+        getSystemService(NotificationManager::class.java).notify(notificationId, notification)
+    }
+
+    private fun showNotification(data: Map<String, String>) {
+        val title = data["title"] ?: "Palmier"
+        val body = data["body"] ?: return
+        val taskId = data["task_id"]
+        val requestId = data["request_id"]
+        val runId = data["run_id"]
+
+        val notificationId = when {
+            requestId != null -> "input:$requestId".hashCode()
+            taskId != null -> "task:$taskId".hashCode()
+            else -> body.hashCode()
+        }
+
+        ensureNotificationChannel()
+
+        val deepLink = when {
+            taskId != null && runId != null -> "/runs/$taskId/$runId"
+            taskId != null -> "/runs/$taskId/latest"
+            else -> "/"
+        }
+
+        val tapIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("deepLink", deepLink)
+        }
+        val tapPending = PendingIntent.getActivity(
+            this, notificationId, tapIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(tapPending)
+            .build()
+
+        getSystemService(NotificationManager::class.java).notify(notificationId, notification)
+    }
+
+    private fun dismissNotification(data: Map<String, String>) {
+        val taskId = data["task_id"]
+        val requestId = data["request_id"]
+
+        val notificationId = when {
+            requestId != null -> "input:$requestId".hashCode()
+            taskId != null -> "task:$taskId".hashCode()
+            else -> return
+        }
+
+        getSystemService(NotificationManager::class.java).cancel(notificationId)
+    }
+
+    private fun ensureNotificationChannel() {
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            "Task Notifications",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Notifications for task events"
+        }
+        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
     private fun registerTokenWithServer(token: String) {

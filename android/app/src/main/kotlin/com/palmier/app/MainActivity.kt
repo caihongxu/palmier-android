@@ -1,6 +1,7 @@
 package com.palmier.app
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -30,6 +31,21 @@ class MainActivity : BridgeActivity() {
         super.onCreate(savedInstanceState)
         requestNotificationPermission()
         registerFcmToken()
+        handleDeepLink(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleDeepLink(intent)
+    }
+
+    private fun handleDeepLink(intent: Intent?) {
+        val deepLink = intent?.getStringExtra("deepLink") ?: return
+        bridge?.webView?.post {
+            bridge?.webView?.evaluateJavascript(
+                "window.location.href='$deepLink'", null
+            )
+        }
     }
 
     private fun requestNotificationPermission() {
