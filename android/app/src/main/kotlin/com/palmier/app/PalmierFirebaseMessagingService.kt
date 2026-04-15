@@ -152,11 +152,13 @@ class PalmierFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     private fun dismissNotification(data: Map<String, String>) {
+        val type = data["type"] ?: return
         val taskId = data["task_id"]
         val requestId = data["request_id"]
 
         val notificationId = when {
-            requestId != null -> "input:$requestId".hashCode()
+            type == "confirm-dismiss" && requestId != null -> "confirm:$requestId".hashCode()
+            type == "input-dismiss" && requestId != null -> "input:$requestId".hashCode()
             taskId != null -> "task:$taskId".hashCode()
             else -> return
         }
