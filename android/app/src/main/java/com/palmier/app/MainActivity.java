@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 public class MainActivity extends BridgeActivity {
     private static final String TAG = "PalmierMain";
     private static final String PREFS_NAME = "CapacitorStorage";
+    static final String SERVER_URL = "https://app.palmier.me";
 
     private final ActivityResultLauncher<String[]> locationPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
@@ -98,13 +99,12 @@ public class MainActivity extends BridgeActivity {
                     // Save FCM token so the web layer can read it via Capacitor Preferences
                     prefs.edit().putString("fcmToken", token).apply();
 
-                    String serverUrl = prefs.getString("serverUrl", null);
                     String hostId = prefs.getString("hostId", null);
 
-                    if (serverUrl != null && hostId != null) {
-                        postFcmToken(serverUrl, hostId, token);
+                    if (hostId != null) {
+                        postFcmToken(SERVER_URL, hostId, token);
                     } else {
-                        Log.w(TAG, "serverUrl or hostId not yet set, token will be registered on next app launch");
+                        Log.w(TAG, "hostId not yet set, token will be registered on next app launch");
                     }
                 })
                 .addOnFailureListener(e -> Log.e(TAG, "Failed to get FCM token", e));

@@ -41,15 +41,8 @@ public class PalmierFirebaseMessagingService extends FirebaseMessagingService {
                 Intent intent = new Intent(this, GeolocationForegroundService.class);
                 intent.putExtra("requestId", requestId);
                 intent.putExtra("hostId", hostId);
-
-                SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-                String serverUrl = prefs.getString("serverUrl", null);
-                if (serverUrl != null) {
-                    intent.putExtra("serverUrl", serverUrl);
-                    startForegroundService(intent);
-                } else {
-                    Log.e(TAG, "No serverUrl configured, cannot fulfill geolocation request");
-                }
+                intent.putExtra("serverUrl", MainActivity.SERVER_URL);
+                startForegroundService(intent);
             }
         }
     }
@@ -58,15 +51,14 @@ public class PalmierFirebaseMessagingService extends FirebaseMessagingService {
         new Thread(() -> {
             try {
                 SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-                String serverUrl = prefs.getString("serverUrl", null);
                 String hostId = prefs.getString("hostId", null);
 
-                if (serverUrl == null || hostId == null) {
-                    Log.w(TAG, "serverUrl or hostId not set, skipping token registration");
+                if (hostId == null) {
+                    Log.w(TAG, "hostId not set, skipping token registration");
                     return;
                 }
 
-                URL url = new URL(serverUrl + "/api/fcm/register");
+                URL url = new URL(MainActivity.SERVER_URL + "/api/fcm/register");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "application/json");
