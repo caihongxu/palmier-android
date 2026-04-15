@@ -9,7 +9,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import com.getcapacitor.BridgeActivity
 import com.google.firebase.messaging.FirebaseMessaging
-import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -21,60 +20,24 @@ class MainActivity : BridgeActivity() {
         const val SERVER_URL = "https://app.palmier.me"
     }
 
-    private val locationPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-            if (result[Manifest.permission.ACCESS_FINE_LOCATION] == true) {
-                Log.d(TAG, "Fine location granted")
-                requestBackgroundLocationPermission()
-            } else {
-                Log.w(TAG, "Fine location denied")
-            }
-        }
-
-    private val backgroundLocationLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            Log.d(TAG, if (granted) "Background location granted" else "Background location denied")
-        }
-
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             Log.d(TAG, if (granted) "Notification permission granted" else "Notification permission denied")
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        registerPlugin(LocationPermissionPlugin::class.java)
         super.onCreate(savedInstanceState)
-        requestPermissions()
+        requestNotificationPermission()
         registerFcmToken()
     }
 
-    private fun requestPermissions() {
-        // Request notification permission (Android 13+)
+    private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED
             ) {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
-        }
-
-        // Request location permissions
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            locationPermissionLauncher.launch(
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-            )
-        } else {
-            requestBackgroundLocationPermission()
-        }
-    }
-
-    private fun requestBackgroundLocationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-                != PackageManager.PERMISSION_GRANTED
-            ) {
-                backgroundLocationLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
             }
         }
     }
