@@ -50,7 +50,7 @@ jobs:
           PALMIER_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           PALMIER_KEY_ALIAS: palmier
           PALMIER_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew assembleRelease
+        run: chmod +x gradlew && ./gradlew assembleRelease
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
