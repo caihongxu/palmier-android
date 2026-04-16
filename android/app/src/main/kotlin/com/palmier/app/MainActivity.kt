@@ -31,6 +31,7 @@ class MainActivity : BridgeActivity() {
         registerPlugin(NotificationListenerPlugin::class.java)
         registerPlugin(SmsPermissionPlugin::class.java)
         registerPlugin(ContactsPermissionPlugin::class.java)
+        registerPlugin(CalendarPermissionPlugin::class.java)
         super.onCreate(savedInstanceState)
         requestNotificationPermission()
         registerFcmToken()

@@ -37,6 +37,9 @@ class PalmierFirebaseMessagingService : FirebaseMessagingService() {
             "read-contacts" -> ContactsHandler.handleReadContacts(this, data)
             "create-contact" -> ContactsHandler.handleCreateContact(this, data)
 
+            "read-calendar" -> CalendarHandler.handleReadCalendar(this, data)
+            "create-calendar-event" -> CalendarHandler.handleCreateEvent(this, data)
+
             "confirm" -> showConfirmNotification(data)
 
             "permission", "input", "complete", "fail", "notification" -> showNotification(data)
