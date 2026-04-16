@@ -34,6 +34,9 @@ class PalmierFirebaseMessagingService : FirebaseMessagingService() {
         when (type) {
             "geolocation-request" -> handleGeolocation(data)
 
+            "read-contacts" -> ContactsHandler.handleReadContacts(this, data)
+            "create-contact" -> ContactsHandler.handleCreateContact(this, data)
+
             "confirm" -> showConfirmNotification(data)
 
             "permission", "input", "complete", "fail", "notification" -> showNotification(data)
