@@ -16,7 +16,7 @@ import com.getcapacitor.annotation.PermissionCallback
     permissions = [
         Permission(
             alias = "sms",
-            strings = [Manifest.permission.RECEIVE_SMS]
+            strings = [Manifest.permission.RECEIVE_SMS, Manifest.permission.SEND_SMS]
         )
     ]
 )
@@ -29,9 +29,11 @@ class SmsPermissionPlugin : Plugin() {
 
     @PluginMethod
     fun request(call: PluginCall) {
-        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS) ==
+        val receive = ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS) ==
                 PackageManager.PERMISSION_GRANTED
-        if (!granted) {
+        val send = ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) ==
+                PackageManager.PERMISSION_GRANTED
+        if (!receive || !send) {
             requestPermissionForAlias("sms", call, "onSmsPermissionResult")
         } else {
             call.resolve(buildResult())
@@ -44,8 +46,10 @@ class SmsPermissionPlugin : Plugin() {
     }
 
     private fun buildResult(): JSObject {
-        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS) ==
+        val receive = ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS) ==
                 PackageManager.PERMISSION_GRANTED
-        return JSObject().apply { put("granted", granted) }
+        val send = ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) ==
+                PackageManager.PERMISSION_GRANTED
+        return JSObject().apply { put("granted", receive && send) }
     }
 }
