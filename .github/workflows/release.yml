@@ -1,0 +1,43 @@
+name: Release APK
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install dependencies and sync Capacitor
+        run: npm ci && npx cap sync
+
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/palmier-release.keystore
+
+      - name: Build release APK
+        working-directory: android
+        env:
+          PALMIER_KEYSTORE_PATH: ${{ github.workspace }}/android/palmier-release.keystore
+          PALMIER_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          PALMIER_KEY_ALIAS: palmier
+          PALMIER_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleRelease
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: android/app/build/outputs/apk/release/app-release.apk
+          generate_release_notes: true

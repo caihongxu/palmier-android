@@ -22,8 +22,17 @@ android {
             kotlin.srcDirs += 'src/main/kotlin'
         }
     }
+    signingConfigs {
+        release {
+            storeFile file(System.getenv("PALMIER_KEYSTORE_PATH") ?: "${rootDir}/../palmier-release.keystore")
+            storePassword System.getenv("PALMIER_KEYSTORE_PASSWORD") ?: ""
+            keyAlias System.getenv("PALMIER_KEY_ALIAS") ?: "palmier"
+            keyPassword System.getenv("PALMIER_KEY_PASSWORD") ?: ""
+        }
+    }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
