@@ -21,6 +21,11 @@ class DeviceNotificationListenerService : NotificationListenerService() {
         // Skip Palmier's own task notifications to avoid feedback loops
         if (sbn.packageName == packageName && sbn.notification.channelId == "palmier_tasks") return
 
+        // Check if the user has toggled notification relaying on
+        val prefs = getSharedPreferences("CapacitorStorage", MODE_PRIVATE)
+        val enabled = prefs.getString("notificationListenerEnabled", null)
+        if (enabled == "false") return
+
         val extras = sbn.notification.extras
         val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
         val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
@@ -49,7 +54,6 @@ class DeviceNotificationListenerService : NotificationListenerService() {
             sbn.packageName
         }
 
-        val prefs = getSharedPreferences("CapacitorStorage", MODE_PRIVATE)
         val hostId = prefs.getString("hostId", null)
         if (hostId == null) {
             Log.w(TAG, "hostId not set, skipping notification relay")

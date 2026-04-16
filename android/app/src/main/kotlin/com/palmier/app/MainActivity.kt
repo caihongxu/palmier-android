@@ -5,10 +5,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.getcapacitor.BridgeActivity
 import com.google.firebase.messaging.FirebaseMessaging
@@ -30,9 +28,9 @@ class MainActivity : BridgeActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         registerPlugin(LocationPermissionPlugin::class.java)
+        registerPlugin(NotificationListenerPlugin::class.java)
         super.onCreate(savedInstanceState)
         requestNotificationPermission()
-        requestNotificationListenerAccess()
         registerFcmToken()
         handleDeepLink(intent)
     }
@@ -58,15 +56,6 @@ class MainActivity : BridgeActivity() {
             ) {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
-        }
-    }
-
-    private fun requestNotificationListenerAccess() {
-        val enabled = NotificationManagerCompat.getEnabledListenerPackages(this)
-            .contains(packageName)
-        if (!enabled) {
-            Log.d(TAG, "Notification listener access not granted, opening settings")
-            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         }
     }
 
