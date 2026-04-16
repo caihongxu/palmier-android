@@ -12,17 +12,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/checkout@v4
+        with:
+          repository: caihongxu/palmier-server
+          token: ${{ secrets.SERVER_REPO_TOKEN }}
+          path: palmier-server
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
+      - name: Build PWA
+        run: cd palmier-server && pnpm install --frozen-lockfile && cd pwa && pnpm build
+
       - name: Install dependencies and sync Capacitor
-        run: npm ci && npx cap sync
+        run: |
+          npm ci
+          mkdir -p www && cp -r palmier-server/pwa/dist/* www/
+          npx cap sync
 
       - name: Decode keystore
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/palmier-release.keystore
