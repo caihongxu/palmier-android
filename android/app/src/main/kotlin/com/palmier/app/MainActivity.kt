@@ -29,6 +29,7 @@ class MainActivity : BridgeActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         registerPlugin(LocationPermissionPlugin::class.java)
         registerPlugin(NotificationListenerPlugin::class.java)
+        registerPlugin(SmsPermissionPlugin::class.java)
         super.onCreate(savedInstanceState)
         requestNotificationPermission()
         registerFcmToken()

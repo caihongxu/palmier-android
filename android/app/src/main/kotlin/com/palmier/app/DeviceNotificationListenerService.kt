@@ -1,5 +1,6 @@
 package com.palmier.app
 
+import android.provider.Telephony
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.app.Notification
@@ -20,6 +21,10 @@ class DeviceNotificationListenerService : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         // Skip Palmier's own task notifications to avoid feedback loops
         if (sbn.packageName == packageName && sbn.notification.channelId == "palmier_tasks") return
+
+        // Skip default SMS app notifications — SMS is captured separately via SmsBroadcastReceiver
+        val defaultSmsPackage = Telephony.Sms.getDefaultSmsPackage(this)
+        if (defaultSmsPackage != null && sbn.packageName == defaultSmsPackage) return
 
         // Check if the user has toggled notification relaying on
         val prefs = getSharedPreferences("CapacitorStorage", MODE_PRIVATE)
