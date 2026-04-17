@@ -19,6 +19,20 @@ class MainActivity : BridgeActivity() {
         private const val TAG = "PalmierMain"
         private const val PREFS_NAME = "CapacitorStorage"
         const val SERVER_URL = "https://app.palmier.me"
+
+        @Volatile
+        var isInForeground: Boolean = false
+            private set
+    }
+
+    override fun onResume() {
+        super.onResume()
+        isInForeground = true
+    }
+
+    override fun onPause() {
+        super.onPause()
+        isInForeground = false
     }
 
     private val notificationPermissionLauncher =

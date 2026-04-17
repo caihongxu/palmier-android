@@ -27,12 +27,9 @@ object EmailHandler {
 
         Thread {
             try {
-                ensureChannel(context)
-
                 val notificationId = "email:$requestId".hashCode()
 
-                // Full-screen intent to launch EmailActivity from background
-                val fullScreenIntent = Intent(context, EmailActivity::class.java).apply {
+                val emailIntent = Intent(context, EmailActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     putExtra("to", to)
                     putExtra("subject", subject)
@@ -41,25 +38,36 @@ object EmailHandler {
                     putExtra("bcc", bcc)
                     putExtra("notification_id", notificationId)
                 }
-                val fullScreenPending = PendingIntent.getActivity(
-                    context, notificationId, fullScreenIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
 
-                val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-                    .setSmallIcon(android.R.drawable.ic_dialog_email)
-                    .setContentTitle("Sending email")
-                    .setContentText("To: $to")
-                    .setPriority(NotificationCompat.PRIORITY_MAX)
-                    .setCategory(NotificationCompat.CATEGORY_EMAIL)
-                    .setFullScreenIntent(fullScreenPending, true)
-                    .setAutoCancel(true)
-                    .build()
+                if (MainActivity.isInForeground) {
+                    // App is foregrounded — launch the email composer directly,
+                    // skipping the notification since we already have the user's attention.
+                    context.startActivity(emailIntent)
+                    Log.d(TAG, "Email composer launched directly (foreground) for: $to")
+                } else {
+                    ensureChannel(context)
 
-                context.getSystemService(NotificationManager::class.java)
-                    .notify(notificationId, notification)
+                    val fullScreenPending = PendingIntent.getActivity(
+                        context, notificationId, emailIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
 
-                Log.d(TAG, "Email notification posted for: $to")
+                    val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+                        .setSmallIcon(android.R.drawable.ic_dialog_email)
+                        .setContentTitle("Sending email")
+                        .setContentText("To: $to")
+                        .setPriority(NotificationCompat.PRIORITY_MAX)
+                        .setCategory(NotificationCompat.CATEGORY_EMAIL)
+                        .setFullScreenIntent(fullScreenPending, true)
+                        .setAutoCancel(true)
+                        .build()
+
+                    context.getSystemService(NotificationManager::class.java)
+                        .notify(notificationId, notification)
+
+                    Log.d(TAG, "Email notification posted for: $to")
+                }
+
                 postResponse(requestId, hostId, JSONObject().put("ok", true))
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to launch email", e)
