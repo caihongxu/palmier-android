@@ -27,9 +27,7 @@ class DeviceNotificationListenerService : NotificationListenerService() {
         if (defaultSmsPackage != null && sbn.packageName == defaultSmsPackage) return
 
         // Check if the user has toggled notification relaying on
-        val prefs = getSharedPreferences("CapacitorStorage", MODE_PRIVATE)
-        val enabled = prefs.getString("notificationListenerEnabled", null)
-        if (enabled == "false") return
+        if (!CapabilityState.isEnabled(this, "notifications")) return
 
         val extras = sbn.notification.extras
         val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
@@ -59,7 +57,7 @@ class DeviceNotificationListenerService : NotificationListenerService() {
             sbn.packageName
         }
 
-        val hostId = prefs.getString("hostId", null)
+        val hostId = getSharedPreferences("CapacitorStorage", MODE_PRIVATE).getString("hostId", null)
         if (hostId == null) {
             Log.w(TAG, "hostId not set, skipping notification relay")
             return

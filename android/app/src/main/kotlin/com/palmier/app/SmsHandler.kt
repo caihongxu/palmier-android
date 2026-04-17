@@ -20,9 +20,7 @@ object SmsHandler {
         val to = data["to"]
         val body = data["body"]
 
-        val prefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
-        val enabled = prefs.getString("smsListenerEnabled", null)
-        if (enabled == "false") {
+        if (!CapabilityState.isEnabled(context, "sms")) {
             postResponse(requestId, hostId, JSONObject().put("error", "SMS access disabled by user"))
             return
         }

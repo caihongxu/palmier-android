@@ -18,10 +18,9 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
 
-        val prefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
-        val enabled = prefs.getString("smsListenerEnabled", null)
-        if (enabled == "false") return
+        if (!CapabilityState.isEnabled(context, "sms")) return
 
+        val prefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
         val hostId = prefs.getString("hostId", null)
         if (hostId == null) {
             Log.w(TAG, "hostId not set, skipping SMS relay")

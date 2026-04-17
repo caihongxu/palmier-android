@@ -21,7 +21,9 @@ class PalmierFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         Log.d(TAG, "New FCM token: $token")
-        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putString("fcmToken", token).apply()
+        // PWA reads the token directly via Device.getFcmToken(); no cached copy needed.
+        // We still handle background refreshes here (the PWA isn't necessarily running)
+        // by re-registering with the relay server if we already know the hostId.
         registerTokenWithServer(token)
     }
 

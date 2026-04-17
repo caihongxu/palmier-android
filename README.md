@@ -117,26 +117,27 @@ Set the phone's ringer mode (normal, vibrate, silent).
 - `RingerHandler` — sets via `AudioManager` and `NotificationManager`
 - Toggle: **Do Not Disturb Control** (system settings — DND access)
 
-## Capacitor Plugins
+## Native/Web Interface
 
-Custom Capacitor plugins bridge native permissions to the PWA's toggle UI:
+A single custom Capacitor plugin (`Device`) exposes the entire native surface to the PWA. Collapsing the earlier six permission plugins into one keeps the contract typed and discoverable, with no shared SharedPreferences "mailbox" between the two sides.
 
-| Plugin | Methods | Purpose |
-|--------|---------|---------|
-| `LocationPermission` | `check()`, `request()` | Fine + background location |
-| `NotificationListener` | `check()`, `request()` | Notification listener access (opens system settings) |
-| `SmsPermission` | `check()`, `request()` | RECEIVE_SMS + SEND_SMS |
-| `ContactsPermission` | `check()`, `request()` | READ_CONTACTS + WRITE_CONTACTS |
-| `CalendarPermission` | `check()`, `request()` | READ_CALENDAR + WRITE_CALENDAR |
-| `DndAccess` | `check()`, `request()` | Do Not Disturb policy access (opens system settings) |
+| Method | Purpose |
+|--------|---------|
+| `getFcmToken()` | Fetch the device's Firebase token. Always fresh — the PWA no longer reads a cached copy from SharedPreferences. |
+| `getSupportedPermissions()` | List of permission types this APK understands. The PWA queries on mount and hides toggles whose permissions the installed APK can't fulfill — important because the PWA is served remotely and can ship ahead of the APK. |
+| `checkPermission({type})` / `requestPermission({type})` | Unified permission gate. `type` is one of `location`, `sms`, `contacts`, `calendar`, `notificationListener`, `dnd`, `fullScreenIntent`. Returns `{granted, supported}`; unknown types resolve with `supported: false` rather than throwing. |
+| `setEnabledCapabilities({capabilities})` | Authoritative local whitelist — native receivers (`SmsBroadcastReceiver`, `DeviceNotificationListenerService`) and FCM handlers refuse to act on capabilities not in this list, even if the server asks. Persisted via `CapabilityState`. |
+| `addListener("deepLink", handler)` | Event channel for FCM notification taps. Native emits `{path}`; the PWA's router handles it client-side (no more `evaluateJavascript`). |
 
 ## Project Structure
 
 - `www/offline.html` — offline fallback page (shown when `app.palmier.me` is unreachable)
 - `android/` — native Android project (Capacitor-managed)
 - `android/app/src/main/kotlin/com/palmier/app/` — native Kotlin code
-  - `MainActivity.kt` — permission requests, FCM token registration, plugin registration, deep-link dispatch
-  - `PalmierFirebaseMessagingService.kt` — FCM message handling and dispatch
+  - `MainActivity.kt` — plugin registration, POST_NOTIFICATIONS prompt, deep-link buffering
+  - `DevicePlugin.kt` — the unified Capacitor plugin (permissions, FCM token, capability gating, deep-link events)
+  - `CapabilityState.kt` — reads/writes the local enabled-capabilities set (with legacy fallback for upgrades from the pre-`Device` APK)
+  - `PalmierFirebaseMessagingService.kt` — FCM message handling, dispatch, background token re-registration
   - `GeolocationForegroundService.kt` — background GPS fetch
   - `DeviceNotificationListenerService.kt` — device notification capture
   - `SmsBroadcastReceiver.kt` — incoming SMS capture
@@ -146,12 +147,6 @@ Custom Capacitor plugins bridge native permissions to the PWA's toggle UI:
   - `AlarmHandler.kt` — set alarms
   - `BatteryHandler.kt` — read battery
   - `RingerHandler.kt` — set ringer mode
-  - `DndAccessPlugin.kt` — DND access Capacitor plugin
-  - `NotificationListenerPlugin.kt` — notification listener Capacitor plugin
-  - `SmsPermissionPlugin.kt` — SMS permission Capacitor plugin
-  - `ContactsPermissionPlugin.kt` — contacts permission Capacitor plugin
-  - `CalendarPermissionPlugin.kt` — calendar permission Capacitor plugin
-  - `LocationPermissionPlugin.kt` — location permission Capacitor plugin
   - `NotificationActionReceiver.kt` — push notification action buttons
 - `capacitor.config.json` — Capacitor configuration (remote `server.url` + offline `errorPath`)
 - `.github/workflows/release.yml` — automated APK release workflow

@@ -21,9 +21,7 @@ object CalendarHandler {
         val requestId = data["requestId"] ?: return
         val hostId = data["hostId"] ?: return
 
-        val prefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
-        val enabled = prefs.getString("calendarAccessEnabled", null)
-        if (enabled == "false") {
+        if (!CapabilityState.isEnabled(context, "calendar")) {
             postResponse(requestId, hostId, JSONObject().put("error", "Calendar access disabled by user"))
             return
         }
@@ -54,9 +52,7 @@ object CalendarHandler {
         val location = data["location"]
         val description = data["description"]
 
-        val prefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
-        val enabled = prefs.getString("calendarAccessEnabled", null)
-        if (enabled == "false") {
+        if (!CapabilityState.isEnabled(context, "calendar")) {
             postResponse(requestId, hostId, JSONObject().put("error", "Calendar access disabled by user"))
             return
         }

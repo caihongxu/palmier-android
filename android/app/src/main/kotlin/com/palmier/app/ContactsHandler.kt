@@ -21,9 +21,7 @@ object ContactsHandler {
         val requestId = data["requestId"] ?: return
         val hostId = data["hostId"] ?: return
 
-        val prefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
-        val enabled = prefs.getString("contactsAccessEnabled", null)
-        if (enabled == "false") {
+        if (!CapabilityState.isEnabled(context, "contacts")) {
             postResponse(requestId, hostId, JSONObject().put("error", "Contacts access disabled by user"))
             return
         }
@@ -49,9 +47,7 @@ object ContactsHandler {
         val phone = data["phone"]
         val email = data["email"]
 
-        val prefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
-        val enabled = prefs.getString("contactsAccessEnabled", null)
-        if (enabled == "false") {
+        if (!CapabilityState.isEnabled(context, "contacts")) {
             postResponse(requestId, hostId, JSONObject().put("error", "Contacts access disabled by user"))
             return
         }
