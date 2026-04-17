@@ -140,12 +140,12 @@ class DevicePlugin : Plugin() {
     }
 
     private fun requestLocation(call: PluginCall) {
-        val fine = hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+        val fine = isManifestPermissionGranted(Manifest.permission.ACCESS_FINE_LOCATION)
         if (!fine) {
             requestPermissionForAlias("location", call, "onLocationFineResult")
             return
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !hasPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !isManifestPermissionGranted(Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
             requestPermissionForAlias("backgroundLocation", call, "onLocationBackgroundResult")
             return
         }
@@ -154,11 +154,11 @@ class DevicePlugin : Plugin() {
 
     @PermissionCallback
     private fun onLocationFineResult(call: PluginCall) {
-        if (!hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
+        if (!isManifestPermissionGranted(Manifest.permission.ACCESS_FINE_LOCATION)) {
             call.resolve(grantedResult(false))
             return
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !hasPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !isManifestPermissionGranted(Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
             requestPermissionForAlias("backgroundLocation", call, "onLocationBackgroundResult")
             return
         }
@@ -223,19 +223,19 @@ class DevicePlugin : Plugin() {
     private fun grantedResult(granted: Boolean): JSObject =
         JSObject().put("granted", granted).put("supported", true)
 
-    private fun hasPermission(permission: String): Boolean =
+    private fun isManifestPermissionGranted(permission: String): Boolean =
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 
     private fun isGranted(type: String): Boolean = when (type) {
         "location" -> {
-            val fine = hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+            val fine = isManifestPermissionGranted(Manifest.permission.ACCESS_FINE_LOCATION)
             val bg = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
-                hasPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                isManifestPermissionGranted(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
             fine && bg
         }
-        "sms" -> hasPermission(Manifest.permission.RECEIVE_SMS) && hasPermission(Manifest.permission.SEND_SMS)
-        "contacts" -> hasPermission(Manifest.permission.READ_CONTACTS) && hasPermission(Manifest.permission.WRITE_CONTACTS)
-        "calendar" -> hasPermission(Manifest.permission.READ_CALENDAR) && hasPermission(Manifest.permission.WRITE_CALENDAR)
+        "sms" -> isManifestPermissionGranted(Manifest.permission.RECEIVE_SMS) && isManifestPermissionGranted(Manifest.permission.SEND_SMS)
+        "contacts" -> isManifestPermissionGranted(Manifest.permission.READ_CONTACTS) && isManifestPermissionGranted(Manifest.permission.WRITE_CONTACTS)
+        "calendar" -> isManifestPermissionGranted(Manifest.permission.READ_CALENDAR) && isManifestPermissionGranted(Manifest.permission.WRITE_CALENDAR)
         "notificationListener" ->
             NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName)
         "dnd" ->
