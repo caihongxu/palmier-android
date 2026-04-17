@@ -1,6 +1,6 @@
 # Palmier Android
 
-Native Android wrapper for the Palmier PWA, built with [Capacitor](https://capacitorjs.com/). Provides native capabilities that the web layer can't access in the background — FCM push, GPS, contacts, calendar, SMS, alarms, battery, ringer control, and device notifications.
+Native Android wrapper for the Palmier PWA, built with [Capacitor](https://capacitorjs.com/). The WebView loads directly from [app.palmier.me](https://app.palmier.me), so PWA changes ship instantly with no APK rebuild. The app provides native capabilities the web layer can't access in the background — FCM push, GPS, contacts, calendar, SMS, alarms, battery, ringer control, and device notifications.
 
 ## Prerequisites
 
@@ -12,17 +12,29 @@ Native Android wrapper for the Palmier PWA, built with [Capacitor](https://capac
 
 ```bash
 npm install
-npx cap sync          # copies PWA build and syncs into Android project
+npx cap sync          # syncs native plugins + offline fallback into Android project
 npx cap open android  # opens in Android Studio
 ```
 
+## How the WebView Loads
+
+`capacitor.config.json` sets `server.url` to `https://app.palmier.me`. On launch, the WebView fetches the PWA from the cloud. When the device is offline the WebView falls back to `www/offline.html` (configured via `server.errorPath`), which shows a "you're offline" screen and auto-reloads when connectivity returns.
+
+Because the PWA is served remotely, this repo has no build-time dependency on `palmier-server`. Release builds run `npx cap sync` only — no PWA build step.
+
+### Access modes
+
+This app only supports **Server mode** (via `app.palmier.me`). LAN mode is browser-only — the WebView would block cleartext `http://<host-ip>:<port>` requests as mixed content. Users on LAN open the PWA from Chrome/Safari directly.
+
+### Deep links
+
+FCM notification taps pass a relative path (e.g. `/runs/:taskId/:runId`) via an Intent extra. `MainActivity.handleDeepLink` evaluates `window.location.href='<path>'` inside the WebView, which resolves against `https://app.palmier.me`. No external `intent-filter` is registered.
+
 ## Development Workflow
 
-1. Make changes to the PWA in `palmier-server/pwa/`
-2. Build the PWA: `cd ../palmier-server/pwa && pnpm build`
-3. Copy into www: `cp -r ../palmier-server/pwa/dist/* www/`
-4. Sync into Android: `npx cap sync`
-5. Build and run from Android Studio
+1. Make changes to the PWA in `palmier-server/pwa/` and deploy to `app.palmier.me`.
+2. Reload the app — changes are live (no rebuild, no `cap sync`).
+3. Only rebuild the APK when you change native Kotlin code, Capacitor plugins, `capacitor.config.json`, or `www/offline.html`.
 
 ## Releases
 
@@ -33,7 +45,7 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-The workflow builds a signed APK and creates a GitHub release. See `.github/workflows/release.yml`.
+The workflow runs `npm ci && npx cap sync`, then builds a signed APK and creates a GitHub release. See `.github/workflows/release.yml`.
 
 ## Native Features
 
@@ -120,10 +132,10 @@ Custom Capacitor plugins bridge native permissions to the PWA's toggle UI:
 
 ## Project Structure
 
-- `www/` — copied PWA build output (gitignored, populated by cap sync)
+- `www/offline.html` — offline fallback page (shown when `app.palmier.me` is unreachable)
 - `android/` — native Android project (Capacitor-managed)
 - `android/app/src/main/kotlin/com/palmier/app/` — native Kotlin code
-  - `MainActivity.kt` — permission requests, FCM token registration, plugin registration
+  - `MainActivity.kt` — permission requests, FCM token registration, plugin registration, deep-link dispatch
   - `PalmierFirebaseMessagingService.kt` — FCM message handling and dispatch
   - `GeolocationForegroundService.kt` — background GPS fetch
   - `DeviceNotificationListenerService.kt` — device notification capture
@@ -141,5 +153,5 @@ Custom Capacitor plugins bridge native permissions to the PWA's toggle UI:
   - `CalendarPermissionPlugin.kt` — calendar permission Capacitor plugin
   - `LocationPermissionPlugin.kt` — location permission Capacitor plugin
   - `NotificationActionReceiver.kt` — push notification action buttons
-- `capacitor.config.json` — Capacitor configuration
+- `capacitor.config.json` — Capacitor configuration (remote `server.url` + offline `errorPath`)
 - `.github/workflows/release.yml` — automated APK release workflow

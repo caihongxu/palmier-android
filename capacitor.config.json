@@ -1,5 +1,9 @@
 {
   "appId": "com.palmier.app",
   "appName": "Palmier",
-  "webDir": "www"
+  "webDir": "www",
+  "server": {
+    "url": "https://app.palmier.me",
+    "errorPath": "offline.html"
+  }
 }
