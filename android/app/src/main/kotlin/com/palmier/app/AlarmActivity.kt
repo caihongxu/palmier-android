@@ -13,10 +13,10 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
 /**
- * Full-screen alert activity that shows over the lock screen with an alarm sound.
- * Launched via a full-screen intent from AlertHandler.
+ * Full-screen alarm activity that shows over the lock screen with an alarm sound.
+ * Launched via a full-screen intent from AlarmHandler.
  */
-class AlertActivity : AppCompatActivity() {
+class AlarmActivity : AppCompatActivity() {
 
     private var ringtone: android.media.Ringtone? = null
 
@@ -40,7 +40,7 @@ class AlertActivity : AppCompatActivity() {
 
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        val title = intent.getStringExtra("title") ?: "Alert"
+        val title = intent.getStringExtra("title") ?: "Alarm"
         val description = intent.getStringExtra("description") ?: ""
         val notificationId = intent.getIntExtra("notification_id", 0)
 

@@ -98,10 +98,11 @@ Read and create calendar events on the device.
 
 ### Alarm
 
-Set alarms on the device's default clock app.
+Trigger a full-screen alarm popup on the device — even over the lock screen — with a looping ringtone that plays until the user dismisses it. Bypasses Do Not Disturb.
 
-- `AlarmHandler` — fires `AlarmClock.ACTION_SET_ALARM` intent
-- No toggle needed (uses `SET_ALARM` normal permission, auto-granted)
+- `AlarmHandler` — posts a `CATEGORY_ALARM` notification with a full-screen intent on a DND-bypassing channel (`palmier_alarms`)
+- `AlarmActivity` — full-screen activity launched by the intent; renders title/description + Dismiss button, plays the default alarm ringtone on the alarm audio stream via `RingtoneManager`
+- Toggle: **Full-Screen Alarm** (requires `USE_FULL_SCREEN_INTENT`; Android 14+ needs the user to grant it in app settings)
 
 ### Battery
 
@@ -144,7 +145,7 @@ A single custom Capacitor plugin (`Device`) exposes the entire native surface to
   - `SmsHandler.kt` — send SMS
   - `ContactsHandler.kt` — read/create contacts
   - `CalendarHandler.kt` — read/create calendar events
-  - `AlarmHandler.kt` — set alarms
+  - `AlarmHandler.kt` / `AlarmActivity.kt` — full-screen alarm popup with looping ringtone
   - `BatteryHandler.kt` — read battery
   - `RingerHandler.kt` — set ringer mode
   - `NotificationActionReceiver.kt` — push notification action buttons

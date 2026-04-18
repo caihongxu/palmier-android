@@ -11,26 +11,26 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-object AlertHandler {
+object AlarmHandler {
 
-    private const val TAG = "PalmierAlert"
-    private const val CHANNEL_ID = "palmier_alerts"
+    private const val TAG = "PalmierAlarm"
+    private const val CHANNEL_ID = "palmier_alarms"
 
-    fun handleSendAlert(context: Context, data: Map<String, String>) {
+    fun handleSendAlarm(context: Context, data: Map<String, String>) {
         val requestId = data["requestId"] ?: return
         val hostId = data["hostId"] ?: return
-        val title = data["title"] ?: "Alert"
+        val title = data["title"] ?: "Alarm"
         val description = data["description"] ?: ""
 
         Thread {
             try {
                 ensureChannel(context)
 
-                val notificationId = "alert:$requestId".hashCode()
+                val notificationId = "alarm:$requestId".hashCode()
 
                 // Full-screen intent — shows as full-screen activity on lock screen,
                 // heads-up notification when unlocked
-                val fullScreenIntent = Intent(context, AlertActivity::class.java).apply {
+                val fullScreenIntent = Intent(context, AlarmActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     putExtra("title", title)
                     putExtra("description", description)
@@ -54,11 +54,11 @@ object AlertHandler {
                 context.getSystemService(NotificationManager::class.java)
                     .notify(notificationId, notification)
 
-                Log.d(TAG, "Alert sent: $title")
+                Log.d(TAG, "Alarm sent: $title")
                 postResponse(requestId, hostId, JSONObject().put("ok", true))
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to send alert", e)
-                postResponse(requestId, hostId, JSONObject().put("error", "Failed to send alert: ${e.message}"))
+                Log.e(TAG, "Failed to send alarm", e)
+                postResponse(requestId, hostId, JSONObject().put("error", "Failed to send alarm: ${e.message}"))
             }
         }.start()
     }
@@ -66,10 +66,10 @@ object AlertHandler {
     private fun ensureChannel(context: Context) {
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "Alerts",
+            "Alarms",
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "Urgent alerts from AI agents"
+            description = "Urgent alarms from AI agents"
             setBypassDnd(true)
         }
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
@@ -77,7 +77,7 @@ object AlertHandler {
 
     private fun postResponse(requestId: String, hostId: String, result: JSONObject) {
         try {
-            val url = URL("${MainActivity.SERVER_URL}/api/device/alert-response")
+            val url = URL("${MainActivity.SERVER_URL}/api/device/alarm-response")
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "POST"
             conn.setRequestProperty("Content-Type", "application/json")
