@@ -79,10 +79,10 @@ object EmailHandler {
     private fun ensureChannel(context: Context) {
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "Email",
+            "Pending Emails",
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "Email drafts from AI agents"
+            description = "Pending emails to send from AI agents"
         }
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
