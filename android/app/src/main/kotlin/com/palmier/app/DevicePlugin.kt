@@ -55,6 +55,10 @@ import java.io.ByteArrayOutputStream
         Permission(
             alias = "calendar",
             strings = [Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR]
+        ),
+        Permission(
+            alias = "postNotifications",
+            strings = [Manifest.permission.POST_NOTIFICATIONS]
         )
     ]
 )
@@ -71,6 +75,7 @@ class DevicePlugin : Plugin() {
         val SUPPORTED_TYPES: Set<String> = setOf(
             "location", "sms", "contacts", "calendar",
             "notificationListener", "dnd", "fullScreenIntent",
+            "postNotifications",
         )
     }
 
@@ -198,6 +203,7 @@ class DevicePlugin : Plugin() {
         when (type) {
             "location" -> requestLocation(call)
             "sms", "contacts", "calendar" -> requestRuntime(type, call)
+            "postNotifications" -> requestPostNotifications(call)
             "notificationListener" -> openSettings(call, type, Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
             "dnd" -> openSettings(call, type, Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
             "fullScreenIntent" -> requestFullScreenIntent(call)
@@ -248,6 +254,15 @@ class DevicePlugin : Plugin() {
     @PermissionCallback
     private fun onLocationBackgroundResult(call: PluginCall) {
         call.resolve(grantedResult(isGranted("location")))
+    }
+
+    private fun requestPostNotifications(call: PluginCall) {
+        // Pre-Tiramisu (API < 33) POST_NOTIFICATIONS is auto-granted; skip the runtime prompt.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            call.resolve(grantedResult(true))
+            return
+        }
+        requestRuntime("postNotifications", call)
     }
 
     private fun requestFullScreenIntent(call: PluginCall) {
@@ -316,6 +331,10 @@ class DevicePlugin : Plugin() {
         "sms" -> isManifestPermissionGranted(Manifest.permission.RECEIVE_SMS) && isManifestPermissionGranted(Manifest.permission.SEND_SMS)
         "contacts" -> isManifestPermissionGranted(Manifest.permission.READ_CONTACTS) && isManifestPermissionGranted(Manifest.permission.WRITE_CONTACTS)
         "calendar" -> isManifestPermissionGranted(Manifest.permission.READ_CALENDAR) && isManifestPermissionGranted(Manifest.permission.WRITE_CALENDAR)
+        "postNotifications" -> {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) true
+            else isManifestPermissionGranted(Manifest.permission.POST_NOTIFICATIONS)
+        }
         "notificationListener" ->
             NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName)
         "dnd" ->
