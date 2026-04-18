@@ -5,11 +5,17 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import android.util.Base64
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import com.getcapacitor.JSArray
 import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
@@ -18,6 +24,7 @@ import com.getcapacitor.annotation.CapacitorPlugin
 import com.getcapacitor.annotation.Permission
 import com.getcapacitor.annotation.PermissionCallback
 import com.google.firebase.messaging.FirebaseMessaging
+import java.io.ByteArrayOutputStream
 
 /**
  * Unified native surface exposed to the WebView.
@@ -77,6 +84,64 @@ class DevicePlugin : Plugin() {
         FirebaseMessaging.getInstance().token
             .addOnSuccessListener { token -> call.resolve(JSObject().put("token", token)) }
             .addOnFailureListener { e -> call.reject("fcm_unavailable", e) }
+    }
+
+    // ---- Installed apps ----
+
+    /**
+     * Returns user-visible (launcher) apps installed on this device, used by the
+     * notification app-filter UI. Filters via Intent.CATEGORY_LAUNCHER so we don't
+     * need the restricted QUERY_ALL_PACKAGES permission — this only surfaces apps
+     * the user can open from their home screen. Icons are rendered to 96x96 PNG
+     * and base64-encoded as a data URL.
+     */
+    @PluginMethod
+    fun getInstalledApps(call: PluginCall) {
+        Thread {
+            try {
+                val pm = context.packageManager
+                val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+                val activities = pm.queryIntentActivities(intent, 0)
+
+                // Dedupe by package — a single app can have multiple launcher activities.
+                val seen = mutableSetOf<String>()
+                val apps = JSArray()
+                for (info in activities) {
+                    val packageName = info.activityInfo.packageName
+                    if (!seen.add(packageName)) continue
+                    if (packageName == context.packageName) continue  // skip Palmier itself
+                    val appName = info.loadLabel(pm).toString()
+                    val iconDataUrl = try {
+                        drawableToDataUrl(info.loadIcon(pm))
+                    } catch (_: Exception) { null }
+                    val obj = JSObject()
+                        .put("packageName", packageName)
+                        .put("appName", appName)
+                    if (iconDataUrl != null) obj.put("icon", iconDataUrl)
+                    apps.put(obj)
+                }
+                call.resolve(JSObject().put("apps", apps))
+            } catch (e: Exception) {
+                call.reject("failed to enumerate apps", e)
+            }
+        }.start()
+    }
+
+    private fun drawableToDataUrl(drawable: Drawable): String {
+        val size = 96
+        val bitmap = if (drawable is BitmapDrawable && drawable.bitmap != null) {
+            Bitmap.createScaledBitmap(drawable.bitmap, size, size, true)
+        } else {
+            val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bmp)
+            drawable.setBounds(0, 0, size, size)
+            drawable.draw(canvas)
+            bmp
+        }
+        val stream = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+        val encoded = Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
+        return "data:image/png;base64,$encoded"
     }
 
     // ---- Capability gating ----
