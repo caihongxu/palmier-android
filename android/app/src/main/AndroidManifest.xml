@@ -52,8 +52,6 @@
 
         <activity
             android:name=".EmailActivity"
-            android:showOnLockScreen="true"
-            android:turnScreenOn="true"
             android:exported="false"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
@@ -100,4 +98,12 @@
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+
+    <!-- Package visibility (Android 11+): allow resolving mailto: handlers -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="mailto" />
+        </intent>
+    </queries>
 </manifest>

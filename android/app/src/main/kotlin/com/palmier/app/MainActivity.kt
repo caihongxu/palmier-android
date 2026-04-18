@@ -15,24 +15,10 @@ class MainActivity : BridgeActivity() {
     companion object {
         private const val TAG = "PalmierMain"
         const val SERVER_URL = "https://app.palmier.me"
-
-        @Volatile
-        var isInForeground: Boolean = false
-            private set
     }
 
     /** Deep link received before the Device plugin was ready to notify JS listeners. */
     private var pendingDeepLink: String? = null
-
-    override fun onResume() {
-        super.onResume()
-        isInForeground = true
-    }
-
-    override fun onPause() {
-        super.onPause()
-        isInForeground = false
-    }
 
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->

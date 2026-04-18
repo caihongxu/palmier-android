@@ -39,34 +39,26 @@ object EmailHandler {
                     putExtra("notification_id", notificationId)
                 }
 
-                if (MainActivity.isInForeground) {
-                    // App is foregrounded — launch the email composer directly,
-                    // skipping the notification since we already have the user's attention.
-                    context.startActivity(emailIntent)
-                    Log.d(TAG, "Email composer launched directly (foreground) for: $to")
-                } else {
-                    ensureChannel(context)
+                ensureChannel(context)
 
-                    val fullScreenPending = PendingIntent.getActivity(
-                        context, notificationId, emailIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                    )
+                val tapPending = PendingIntent.getActivity(
+                    context, notificationId, emailIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
 
-                    val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-                        .setSmallIcon(android.R.drawable.ic_dialog_email)
-                        .setContentTitle("Sending email")
-                        .setContentText("To: $to")
-                        .setPriority(NotificationCompat.PRIORITY_MAX)
-                        .setCategory(NotificationCompat.CATEGORY_EMAIL)
-                        .setFullScreenIntent(fullScreenPending, true)
-                        .setAutoCancel(true)
-                        .build()
+                val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+                    .setSmallIcon(android.R.drawable.ic_dialog_email)
+                    .setContentTitle("Pending email")
+                    .setContentText("Tap to send to $to")
+                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                    .setContentIntent(tapPending)
+                    .setAutoCancel(true)
+                    .build()
 
-                    context.getSystemService(NotificationManager::class.java)
-                        .notify(notificationId, notification)
+                context.getSystemService(NotificationManager::class.java)
+                    .notify(notificationId, notification)
 
-                    Log.d(TAG, "Email notification posted for: $to")
-                }
+                Log.d(TAG, "Email notification posted for: $to")
 
                 postResponse(requestId, hostId, JSONObject().put("ok", true))
             } catch (e: Exception) {
@@ -80,7 +72,7 @@ object EmailHandler {
         val channel = NotificationChannel(
             CHANNEL_ID,
             "Pending Emails",
-            NotificationManager.IMPORTANCE_HIGH
+            NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
             description = "Pending emails to send from AI agents"
         }

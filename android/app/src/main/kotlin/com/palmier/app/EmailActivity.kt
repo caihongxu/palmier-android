@@ -1,19 +1,17 @@
 package com.palmier.app
 
 import android.app.Activity
-import android.app.KeyguardManager
 import android.app.NotificationManager
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.view.WindowManager
 
 /**
  * Transparent activity that launches the email app with a pre-filled draft.
- * Uses full-screen intent pattern to launch from the background.
- * Auto-finishes when the email app returns, sending the user back to their original screen.
+ * Launched either directly (when app is foregrounded) or by the user tapping
+ * the pending-email notification. Auto-finishes when the email app returns,
+ * sending the user back to their original screen.
  * Extends plain Activity (not AppCompatActivity) to allow android:style/Theme.Translucent.
  */
 class EmailActivity : Activity() {
@@ -25,21 +23,6 @@ class EmailActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Show over lock screen
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            setShowWhenLocked(true)
-            setTurnScreenOn(true)
-            val km = getSystemService(KeyguardManager::class.java)
-            km.requestDismissKeyguard(this, null)
-        } else {
-            @Suppress("DEPRECATION")
-            window.addFlags(
-                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-                WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
-            )
-        }
 
         // Dismiss the notification that launched us
         val notificationId = intent.getIntExtra("notification_id", 0)

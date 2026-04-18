@@ -144,6 +144,21 @@ class DevicePlugin : Plugin() {
         return "data:image/png;base64,$encoded"
     }
 
+    // ---- Email client ----
+
+    /**
+     * Returns whether any installed app can handle a mailto: intent. Used by the
+     * PWA to gate the Sending Email toggle — no point enabling it if the user
+     * has no email client configured. Pure PackageManager lookup; no UI, no side
+     * effects. Requires the matching <queries> entry in the manifest on Android 11+.
+     */
+    @PluginMethod
+    fun hasEmailClient(call: PluginCall) {
+        val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:test@example.com"))
+        val available = intent.resolveActivity(context.packageManager) != null
+        call.resolve(JSObject().put("available", available).put("supported", true))
+    }
+
     // ---- Capability gating ----
 
     @PluginMethod
