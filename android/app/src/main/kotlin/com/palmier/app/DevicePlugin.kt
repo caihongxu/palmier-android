@@ -98,11 +98,8 @@ class DevicePlugin : Plugin() {
     // ---- Installed apps ----
 
     /**
-     * Returns user-visible (launcher) apps installed on this device, used by the
-     * notification app-filter UI. Filters via Intent.CATEGORY_LAUNCHER so we don't
-     * need the restricted QUERY_ALL_PACKAGES permission — this only surfaces apps
-     * the user can open from their home screen. Icons are rendered to 96x96 PNG
-     * and base64-encoded as a data URL.
+     * Returns user-visible (launcher) apps. Filters via Intent.CATEGORY_LAUNCHER
+     * so QUERY_ALL_PACKAGES isn't needed. Icons are 96x96 PNG data URLs.
      */
     @PluginMethod
     fun getInstalledApps(call: PluginCall) {
