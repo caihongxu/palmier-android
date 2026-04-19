@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android's network_security_config does not accept CIDR ranges in <domain>,
+  so we can't scope cleartext to private-IP subnets only. We permit cleartext
+  globally, which is acceptable here because the WebView is locked to
+  https://app.palmier.me and the only http:// destinations the app dials are
+  the host's LAN URL captured at pair time.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

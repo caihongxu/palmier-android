@@ -5,5 +5,10 @@
   "server": {
     "url": "https://app.palmier.me",
     "errorPath": "offline.html"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
   }
 }
