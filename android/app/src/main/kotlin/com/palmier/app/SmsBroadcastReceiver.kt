@@ -18,7 +18,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
 
-        if (!CapabilityState.isEnabled(context, "sms")) return
+        if (!CapabilityState.isEnabled(context, "sms-read")) return
 
         val prefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
         val hostId = prefs.getString("hostId", null)

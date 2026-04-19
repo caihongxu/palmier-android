@@ -11,12 +11,6 @@ import org.json.JSONArray
  *
  * Storage: a single JSON-array string under "enabledCapabilities" in CapacitorStorage.
  * Written only by DevicePlugin.setEnabledCapabilities (from the PWA's derived state).
- *
- * Legacy fallback: older APK+PWA combos used per-capability keys
- * ("smsListenerEnabled", "contactsAccessEnabled", etc.) with null-means-permissive
- * semantics. While the new key is absent, isEnabled defers to those keys so pre-sync
- * FCM requests on fresh upgrades don't break. After the PWA calls
- * setEnabledCapabilities once, the new key takes over.
  */
 object CapabilityState {
     private const val PREFS = "CapacitorStorage"
@@ -32,24 +26,13 @@ object CapabilityState {
     }
 
     fun isEnabled(context: Context, capability: String): Boolean {
-        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val json = prefs.getString(KEY, null)
-        if (json != null) {
-            return try {
-                val arr = JSONArray(json)
-                (0 until arr.length()).any { arr.getString(it) == capability }
-            } catch (_: Exception) {
-                false
-            }
+        val json = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(KEY, null) ?: return false
+        return try {
+            val arr = JSONArray(json)
+            (0 until arr.length()).any { arr.getString(it) == capability }
+        } catch (_: Exception) {
+            false
         }
-        // Legacy fallback: null means "not explicitly disabled" (permissive).
-        val legacyKey = when (capability) {
-            "notifications" -> "notificationListenerEnabled"
-            "sms" -> "smsListenerEnabled"
-            "contacts" -> "contactsAccessEnabled"
-            "calendar" -> "calendarAccessEnabled"
-            else -> return false
-        }
-        return prefs.getString(legacyKey, null) != "false"
     }
 }

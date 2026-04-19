@@ -76,11 +76,11 @@ Captures all notifications from all apps on the device and relays them to the ho
 
 ### SMS
 
-Captures incoming SMS messages and enables sending SMS from the device.
+Captures incoming SMS messages and enables sending SMS from the device. Read and send are gated by separate toggles so users can enable only what they need.
 
 - `SmsBroadcastReceiver` — captures incoming SMS via `SMS_RECEIVED` broadcast
 - `SmsHandler` — sends SMS via `SmsManager`
-- Toggle: **SMS Access** (runtime permissions: `RECEIVE_SMS` + `SEND_SMS`)
+- Toggles: **SMS Read** (runtime permission: `RECEIVE_SMS`), **SMS Send** (runtime permission: `SEND_SMS`)
 
 ### Contacts
 
@@ -126,7 +126,7 @@ A single custom Capacitor plugin (`Device`) exposes the entire native surface to
 |--------|---------|
 | `getFcmToken()` | Fetch the device's Firebase token. Always fresh — the PWA no longer reads a cached copy from SharedPreferences. |
 | `getSupportedPermissions()` | List of permission types this APK understands. The PWA queries on mount and hides toggles whose permissions the installed APK can't fulfill — important because the PWA is served remotely and can ship ahead of the APK. |
-| `checkPermission({type})` / `requestPermission({type})` | Unified permission gate. `type` is one of `location`, `sms`, `contacts`, `calendar`, `notificationListener`, `dnd`, `fullScreenIntent`. Returns `{granted, supported}`; unknown types resolve with `supported: false` rather than throwing. |
+| `checkPermission({type})` / `requestPermission({type})` | Unified permission gate. `type` is one of `location`, `smsRead`, `smsSend`, `contacts`, `calendar`, `notificationListener`, `dnd`, `fullScreenIntent`. Returns `{granted, supported}`; unknown types resolve with `supported: false` rather than throwing. |
 | `setEnabledCapabilities({capabilities})` | Authoritative local whitelist — native receivers (`SmsBroadcastReceiver`, `DeviceNotificationListenerService`) and FCM handlers refuse to act on capabilities not in this list, even if the server asks. Persisted via `CapabilityState`. |
 | `addListener("deepLink", handler)` | Event channel for FCM notification taps. Native emits `{path}`; the PWA's router handles it client-side (no more `evaluateJavascript`). |
 

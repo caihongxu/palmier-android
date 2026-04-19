@@ -45,8 +45,12 @@ import java.io.ByteArrayOutputStream
             strings = [Manifest.permission.ACCESS_BACKGROUND_LOCATION]
         ),
         Permission(
-            alias = "sms",
-            strings = [Manifest.permission.RECEIVE_SMS, Manifest.permission.SEND_SMS]
+            alias = "smsRead",
+            strings = [Manifest.permission.RECEIVE_SMS]
+        ),
+        Permission(
+            alias = "smsSend",
+            strings = [Manifest.permission.SEND_SMS]
         ),
         Permission(
             alias = "contacts",
@@ -73,7 +77,7 @@ class DevicePlugin : Plugin() {
          * unsupported rather than throwing — lets the PWA hide toggles it can't fulfill.
          */
         val SUPPORTED_TYPES: Set<String> = setOf(
-            "location", "sms", "contacts", "calendar",
+            "location", "smsRead", "smsSend", "contacts", "calendar",
             "notificationListener", "dnd", "fullScreenIntent",
             "postNotifications",
         )
@@ -202,7 +206,7 @@ class DevicePlugin : Plugin() {
         }
         when (type) {
             "location" -> requestLocation(call)
-            "sms", "contacts", "calendar" -> requestRuntime(type, call)
+            "smsRead", "smsSend", "contacts", "calendar" -> requestRuntime(type, call)
             "postNotifications" -> requestPostNotifications(call)
             "notificationListener" -> openSettings(call, type, Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
             "dnd" -> openSettings(call, type, Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
@@ -328,7 +332,8 @@ class DevicePlugin : Plugin() {
                 isManifestPermissionGranted(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
             fine && bg
         }
-        "sms" -> isManifestPermissionGranted(Manifest.permission.RECEIVE_SMS) && isManifestPermissionGranted(Manifest.permission.SEND_SMS)
+        "smsRead" -> isManifestPermissionGranted(Manifest.permission.RECEIVE_SMS)
+        "smsSend" -> isManifestPermissionGranted(Manifest.permission.SEND_SMS)
         "contacts" -> isManifestPermissionGranted(Manifest.permission.READ_CONTACTS) && isManifestPermissionGranted(Manifest.permission.WRITE_CONTACTS)
         "calendar" -> isManifestPermissionGranted(Manifest.permission.READ_CALENDAR) && isManifestPermissionGranted(Manifest.permission.WRITE_CALENDAR)
         "postNotifications" -> {

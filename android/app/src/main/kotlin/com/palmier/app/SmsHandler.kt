@@ -20,8 +20,8 @@ object SmsHandler {
         val to = data["to"]
         val body = data["body"]
 
-        if (!CapabilityState.isEnabled(context, "sms")) {
-            postResponse(requestId, hostId, JSONObject().put("error", "SMS access disabled by user"))
+        if (!CapabilityState.isEnabled(context, "sms-send")) {
+            postResponse(requestId, hostId, JSONObject().put("error", "SMS Send disabled by user"))
             return
         }
 
