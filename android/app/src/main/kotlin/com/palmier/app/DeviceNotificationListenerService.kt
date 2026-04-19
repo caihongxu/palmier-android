@@ -15,35 +15,30 @@ class DeviceNotificationListenerService : NotificationListenerService() {
         private const val DEBOUNCE_MS = 2000L
     }
 
-    // Debounce: track recent notifications by packageName+title
     private val recentKeys = LinkedHashMap<String, Long>(64, 0.75f, true)
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
-        // Skip Palmier's own task notifications to avoid feedback loops
+        // Avoid feedback loops from Palmier's own task notifications.
         if (sbn.packageName == packageName && sbn.notification.channelId == "palmier_tasks") return
 
-        // Skip default SMS app notifications — SMS is captured separately via SmsBroadcastReceiver
+        // SMS is captured separately; skip the SMS app's duplicate notification.
         val defaultSmsPackage = Telephony.Sms.getDefaultSmsPackage(this)
         if (defaultSmsPackage != null && sbn.packageName == defaultSmsPackage) return
 
-        // Check if the user has toggled notification relaying on
         if (!CapabilityState.isEnabled(this, "notifications")) return
 
         val extras = sbn.notification.extras
         val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
         val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
 
-        // Skip empty notifications
         if (title.isBlank() && text.isBlank()) return
 
-        // Debounce: skip if same key was seen within DEBOUNCE_MS
         val dedupeKey = "${sbn.packageName}:$title"
         val now = System.currentTimeMillis()
         val lastSeen = recentKeys[dedupeKey]
         if (lastSeen != null && now - lastSeen < DEBOUNCE_MS) return
         recentKeys[dedupeKey] = now
 
-        // Trim old entries
         if (recentKeys.size > 200) {
             val iter = recentKeys.iterator()
             while (recentKeys.size > 100) { iter.next(); iter.remove() }
@@ -78,7 +73,6 @@ class DeviceNotificationListenerService : NotificationListenerService() {
                 val id = sbn.key ?: "${sbn.packageName}:${sbn.id}"
                 val timestamp = sbn.postTime
 
-                // Use org.json for proper escaping
                 val notification = org.json.JSONObject().apply {
                     put("id", id)
                     put("packageName", sbn.packageName)

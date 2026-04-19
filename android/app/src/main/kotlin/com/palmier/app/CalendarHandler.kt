@@ -10,9 +10,6 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.TimeZone
 
-/**
- * Handles calendar read/create requests triggered via FCM.
- */
 object CalendarHandler {
 
     private const val TAG = "PalmierCalendar"
@@ -27,7 +24,7 @@ object CalendarHandler {
         }
 
         val startDate = data["startDate"]?.toLongOrNull() ?: System.currentTimeMillis()
-        val endDate = data["endDate"]?.toLongOrNull() ?: (startDate + 7 * 24 * 60 * 60 * 1000L) // default: 7 days
+        val endDate = data["endDate"]?.toLongOrNull() ?: (startDate + 7 * 24 * 60 * 60 * 1000L)
 
         Thread {
             try {
@@ -124,7 +121,6 @@ object CalendarHandler {
     }
 
     private fun createEvent(context: Context, title: String, startMs: Long, endMs: Long, location: String?, description: String?) {
-        // Use the first available calendar
         val calId = getDefaultCalendarId(context)
             ?: throw IllegalStateException("No calendar account found on device")
 
@@ -151,7 +147,6 @@ object CalendarHandler {
         )?.use { cursor ->
             if (cursor.moveToFirst()) return cursor.getLong(0)
         }
-        // Fallback: first calendar
         context.contentResolver.query(
             CalendarContract.Calendars.CONTENT_URI,
             arrayOf(CalendarContract.Calendars._ID),

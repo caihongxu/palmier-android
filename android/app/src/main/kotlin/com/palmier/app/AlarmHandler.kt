@@ -28,8 +28,6 @@ object AlarmHandler {
 
                 val notificationId = "alarm:$requestId".hashCode()
 
-                // Full-screen intent — shows as full-screen activity on lock screen,
-                // heads-up notification when unlocked
                 val fullScreenIntent = Intent(context, AlarmActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     putExtra("title", title)

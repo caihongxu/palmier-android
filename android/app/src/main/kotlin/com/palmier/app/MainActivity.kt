@@ -17,7 +17,7 @@ class MainActivity : BridgeActivity() {
         const val SERVER_URL = "https://app.palmier.me"
     }
 
-    /** Deep link received before the Device plugin was ready to notify JS listeners. */
+    // Deep link that arrived before the Device plugin was ready to notify JS listeners.
     private var pendingDeepLink: String? = null
 
     private val notificationPermissionLauncher =
@@ -41,7 +41,7 @@ class MainActivity : BridgeActivity() {
         val path = intent?.getStringExtra("deepLink") ?: return
         val plugin = bridge?.getPlugin("Device")?.instance as? DevicePlugin
         if (plugin == null) {
-            // Bridge/plugins not initialized yet — buffer and deliver from onPostCreate.
+            // Bridge not ready yet; deliver from onPostCreate.
             pendingDeepLink = path
             return
         }

@@ -9,10 +9,6 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-/**
- * Handles contacts read/create requests triggered via FCM.
- * Called from PalmierFirebaseMessagingService.
- */
 object ContactsHandler {
 
     private const val TAG = "PalmierContacts"
@@ -94,7 +90,7 @@ object ContactsHandler {
                 val name = cursor.getString(nameIdx) ?: continue
                 val number = cursor.getString(numberIdx) ?: ""
 
-                // Deduplicate by contact ID (a contact can have multiple numbers)
+                // A contact can have multiple numbers; dedupe by (id, number).
                 val key = "$id:$number"
                 if (!seen.add(key)) continue
 
@@ -112,7 +108,6 @@ object ContactsHandler {
     private fun createContact(context: Context, name: String, phone: String?, email: String?) {
         val ops = ArrayList<android.content.ContentProviderOperation>()
 
-        // Raw contact
         ops.add(
             android.content.ContentProviderOperation.newInsert(ContactsContract.RawContacts.CONTENT_URI)
                 .withValue(ContactsContract.RawContacts.ACCOUNT_TYPE, null)
@@ -120,7 +115,6 @@ object ContactsHandler {
                 .build()
         )
 
-        // Name
         ops.add(
             android.content.ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
                 .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)
@@ -129,7 +123,6 @@ object ContactsHandler {
                 .build()
         )
 
-        // Phone
         if (!phone.isNullOrBlank()) {
             ops.add(
                 android.content.ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
@@ -141,7 +134,6 @@ object ContactsHandler {
             )
         }
 
-        // Email
         if (!email.isNullOrBlank()) {
             ops.add(
                 android.content.ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)

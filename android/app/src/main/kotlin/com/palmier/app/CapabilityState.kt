@@ -3,15 +3,9 @@ package com.palmier.app
 import android.content.Context
 import org.json.JSONArray
 
-/**
- * Local kill-switch for device capabilities. Native receivers and FCM handlers
- * consult this as a second layer of defense beyond the server-side capability
- * token: if the user has the capability disabled in the drawer, the native side
- * refuses to relay events or respond to requests even if the server asks.
- *
- * Storage: a single JSON-array string under "enabledCapabilities" in CapacitorStorage.
- * Written only by DevicePlugin.setEnabledCapabilities (from the PWA's derived state).
- */
+// Local kill-switch consulted by native receivers and FCM handlers. If a capability
+// is disabled here, the native side refuses to act even if the server requests it —
+// a second line of defense beyond the server-side capability token.
 object CapabilityState {
     private const val PREFS = "CapacitorStorage"
     private const val KEY = "enabledCapabilities"

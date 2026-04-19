@@ -26,13 +26,6 @@ import com.getcapacitor.annotation.PermissionCallback
 import com.google.firebase.messaging.FirebaseMessaging
 import java.io.ByteArrayOutputStream
 
-/**
- * Unified native surface exposed to the WebView.
- *
- * Replaces seven per-capability permission plugins (Location, NotificationListener,
- * Sms, Contacts, Calendar, Dnd, FullScreenIntent) with one typed interface,
- * plus FCM token access, capability gating, and deep-link delivery as events.
- */
 @CapacitorPlugin(
     name = "Device",
     permissions = [
@@ -71,11 +64,8 @@ class DevicePlugin : Plugin() {
     companion object {
         const val EVENT_DEEP_LINK = "deepLink"
 
-        /**
-         * Permission types this native build understands. The PWA is served remotely and
-         * can ship ahead of the APK, so types absent from this set must be reported as
-         * unsupported rather than throwing — lets the PWA hide toggles it can't fulfill.
-         */
+        // PWA is served remotely and can ship ahead of the APK, so unknown types
+        // must resolve as unsupported rather than throw.
         val SUPPORTED_TYPES: Set<String> = setOf(
             "location", "smsRead", "smsSend", "contacts", "calendar",
             "notificationListener", "dnd", "fullScreenIntent",
@@ -86,8 +76,6 @@ class DevicePlugin : Plugin() {
     private var pendingSettingsCall: PluginCall? = null
     private var pendingSettingsType: String? = null
 
-    // ---- FCM ----
-
     @PluginMethod
     fun getFcmToken(call: PluginCall) {
         FirebaseMessaging.getInstance().token
@@ -95,12 +83,7 @@ class DevicePlugin : Plugin() {
             .addOnFailureListener { e -> call.reject("fcm_unavailable", e) }
     }
 
-    // ---- Installed apps ----
-
-    /**
-     * Returns user-visible (launcher) apps. Filters via Intent.CATEGORY_LAUNCHER
-     * so QUERY_ALL_PACKAGES isn't needed. Icons are 96x96 PNG data URLs.
-     */
+    // Filters via CATEGORY_LAUNCHER so QUERY_ALL_PACKAGES isn't needed.
     @PluginMethod
     fun getInstalledApps(call: PluginCall) {
         Thread {
@@ -109,13 +92,13 @@ class DevicePlugin : Plugin() {
                 val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
                 val activities = pm.queryIntentActivities(intent, 0)
 
-                // Dedupe by package — a single app can have multiple launcher activities.
+                // A single app can register multiple launcher activities; dedupe by package.
                 val seen = mutableSetOf<String>()
                 val apps = JSArray()
                 for (info in activities) {
                     val packageName = info.activityInfo.packageName
                     if (!seen.add(packageName)) continue
-                    if (packageName == context.packageName) continue  // skip Palmier itself
+                    if (packageName == context.packageName) continue
                     val appName = info.loadLabel(pm).toString()
                     val iconDataUrl = try {
                         drawableToDataUrl(info.loadIcon(pm))
@@ -150,22 +133,13 @@ class DevicePlugin : Plugin() {
         return "data:image/png;base64,$encoded"
     }
 
-    // ---- Email client ----
-
-    /**
-     * Returns whether any installed app can handle a mailto: intent. Used by the
-     * PWA to gate the Sending Email toggle — no point enabling it if the user
-     * has no email client configured. Pure PackageManager lookup; no UI, no side
-     * effects. Requires the matching <queries> entry in the manifest on Android 11+.
-     */
+    // Requires the matching <queries> entry in AndroidManifest on Android 11+.
     @PluginMethod
     fun hasEmailClient(call: PluginCall) {
         val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:test@example.com"))
         val available = intent.resolveActivity(context.packageManager) != null
         call.resolve(JSObject().put("available", available).put("supported", true))
     }
-
-    // ---- Capability gating ----
 
     @PluginMethod
     fun setEnabledCapabilities(call: PluginCall) {
@@ -174,8 +148,6 @@ class DevicePlugin : Plugin() {
         CapabilityState.set(context, set)
         call.resolve()
     }
-
-    // ---- Permissions ----
 
     @PluginMethod
     fun getSupportedPermissions(call: PluginCall) {
@@ -258,7 +230,7 @@ class DevicePlugin : Plugin() {
     }
 
     private fun requestPostNotifications(call: PluginCall) {
-        // Pre-Tiramisu (API < 33) POST_NOTIFICATIONS is auto-granted; skip the runtime prompt.
+        // Pre-Tiramisu POST_NOTIFICATIONS is auto-granted; skip the runtime prompt.
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             call.resolve(grantedResult(true))
             return
@@ -307,14 +279,9 @@ class DevicePlugin : Plugin() {
         call.resolve(grantedResult(isGranted(type)))
     }
 
-    // ---- Deep links ----
-
-    /** Called by MainActivity when an intent arrives with a deepLink extra. */
     fun emitDeepLink(path: String) {
         notifyListeners(EVENT_DEEP_LINK, JSObject().put("path", path))
     }
-
-    // ---- Internals ----
 
     private fun grantedResult(granted: Boolean): JSObject =
         JSObject().put("granted", granted).put("supported", true)

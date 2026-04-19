@@ -12,10 +12,6 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
-/**
- * Full-screen alarm activity that shows over the lock screen with an alarm sound.
- * Launched via a full-screen intent from AlarmHandler.
- */
 class AlarmActivity : AppCompatActivity() {
 
     private var ringtone: android.media.Ringtone? = null
@@ -23,7 +19,6 @@ class AlarmActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Show over lock screen
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
@@ -44,7 +39,6 @@ class AlarmActivity : AppCompatActivity() {
         val description = intent.getStringExtra("description") ?: ""
         val notificationId = intent.getIntExtra("notification_id", 0)
 
-        // Build UI programmatically (no XML layout needed)
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(64, 128, 64, 64)
@@ -89,7 +83,6 @@ class AlarmActivity : AppCompatActivity() {
 
         setContentView(layout)
 
-        // Play alarm sound
         playAlarmSound()
     }
 
@@ -105,7 +98,6 @@ class AlarmActivity : AppCompatActivity() {
                 play()
             }
         } catch (_: Exception) {
-            // Best-effort sound
         }
     }
 

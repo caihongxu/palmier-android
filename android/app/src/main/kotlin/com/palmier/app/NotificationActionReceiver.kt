@@ -27,10 +27,8 @@ class NotificationActionReceiver : BroadcastReceiver() {
 
         Log.d(TAG, "Action: $response for request $requestId")
 
-        // Cancel the notification
         context.getSystemService(NotificationManager::class.java).cancel(notificationId)
 
-        // POST response to server
         val pendingResult = goAsync()
         Thread {
             try {

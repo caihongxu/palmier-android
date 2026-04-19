@@ -29,7 +29,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
 
         val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent) ?: return
 
-        // Group message parts by sender (multi-part SMS)
+        // Multi-part SMS arrives as multiple PDUs; stitch them back together per sender.
         val bySender = mutableMapOf<String, StringBuilder>()
         var timestamp = System.currentTimeMillis()
         for (msg in messages) {

@@ -7,13 +7,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 
-/**
- * Transparent activity that launches the email app with a pre-filled draft.
- * Launched either directly (when app is foregrounded) or by the user tapping
- * the pending-email notification. Auto-finishes when the email app returns,
- * sending the user back to their original screen.
- * Extends plain Activity (not AppCompatActivity) to allow android:style/Theme.Translucent.
- */
+// Extends plain Activity (not AppCompatActivity) so Theme.Translucent applies.
 class EmailActivity : Activity() {
 
     companion object {
@@ -24,7 +18,6 @@ class EmailActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Dismiss the notification that launched us
         val notificationId = intent.getIntExtra("notification_id", 0)
         if (notificationId != 0) {
             getSystemService(NotificationManager::class.java).cancel(notificationId)
@@ -36,7 +29,6 @@ class EmailActivity : Activity() {
         val cc = intent.getStringExtra("cc") ?: ""
         val bcc = intent.getStringExtra("bcc") ?: ""
 
-        // Build mailto URI
         val uriBuilder = StringBuilder("mailto:${Uri.encode(to)}")
         val params = mutableListOf<String>()
         if (subject.isNotBlank()) params.add("subject=${Uri.encode(subject)}")
@@ -64,7 +56,6 @@ class EmailActivity : Activity() {
     @Suppress("DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        // Email app finished — return user to their original screen
         finish()
     }
 }

@@ -7,9 +7,6 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-/**
- * Handles send-SMS requests triggered via FCM.
- */
 object SmsHandler {
 
     private const val TAG = "PalmierSms"
