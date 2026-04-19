@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -77,24 +78,22 @@ class DevicePlugin : Plugin() {
             .addOnFailureListener { e -> call.reject("fcm_unavailable", e) }
     }
 
-    // Filters via CATEGORY_LAUNCHER so QUERY_ALL_PACKAGES isn't needed.
+    // Requires QUERY_ALL_PACKAGES to see all non-system apps on Android 11+.
+    // Hides pure OS system packages; updated system apps (pre-installed but
+    // user-facing, e.g. Messages, Chrome) carry FLAG_UPDATED_SYSTEM_APP and stay.
     @PluginMethod
     fun getInstalledApps(call: PluginCall) {
         Thread {
             try {
                 val pm = context.packageManager
-                val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-                val activities = pm.queryIntentActivities(intent, 0)
-
-                // A single app can register multiple launcher activities; dedupe by package.
-                val seen = mutableSetOf<String>()
                 val apps = JSArray()
-                for (info in activities) {
-                    val packageName = info.activityInfo.packageName
-                    if (!seen.add(packageName)) continue
-                    if (packageName == context.packageName) continue
+                for (info in pm.getInstalledApplications(0)) {
+                    val isSystem = (info.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+                    val isUpdatedSystem = (info.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+                    if (isSystem && !isUpdatedSystem) continue
+                    if (info.packageName == context.packageName) continue
                     val appName = info.loadLabel(pm).toString()
-                    apps.put(JSObject().put("packageName", packageName).put("appName", appName))
+                    apps.put(JSObject().put("packageName", info.packageName).put("appName", appName))
                 }
                 call.resolve(JSObject().put("apps", apps))
             } catch (e: Exception) {
