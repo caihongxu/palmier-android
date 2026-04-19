@@ -72,7 +72,7 @@ Captures all notifications from all apps on the device and relays them to the ho
 - `DeviceNotificationListenerService` — `NotificationListenerService` that captures notifications
 - Excludes Palmier's own task notifications (channel `palmier_tasks`) and the default SMS app's notifications
 - Debounces rapid notifications (2s window per app+title)
-- Toggle: **Read Notifications** (system settings — notification listener access)
+- Toggle: **Notifications from Other Apps** (system settings — notification listener access)
 
 ### SMS
 
