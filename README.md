@@ -1,6 +1,6 @@
 # Palmier Android
 
-Native Android wrapper for the Palmier PWA, built with [Capacitor](https://capacitorjs.com/). The WebView loads directly from [app.palmier.me](https://app.palmier.me), so PWA changes ship instantly with no APK rebuild. The app provides native capabilities the web layer can't access in the background — FCM push, GPS, contacts, calendar, SMS, alarms, battery, ringer control, and device notifications.
+Native Android wrapper for the Palmier PWA, built with [Capacitor](https://capacitorjs.com/). The WebView loads directly from [app.palmier.me](https://app.palmier.me), so PWA changes ship instantly with no APK rebuild. The app provides native capabilities the web layer can't access in the background — FCM push, GPS, contacts, calendar, SMS, email, alarms, battery, ringer control, and device notifications.
 
 ## Prerequisites
 
@@ -57,6 +57,14 @@ Read and create contacts on the device.
 
 - `ContactsHandler` — reads via `ContactsContract`, creates via batch `ContentProviderOperation`
 - Toggle: **Manage Contacts** (runtime permissions: `READ_CONTACTS` + `WRITE_CONTACTS`)
+
+### Send Email
+
+Compose an email from the agent — the user taps a notification to review and send via their own email client. Nothing is sent silently.
+
+- `EmailHandler` — posts a "Pending email" notification; tapping it launches `EmailActivity`
+- `EmailActivity` — fires an `ACTION_SENDTO` `mailto:` intent with `to`/`cc`/`bcc`/`subject`/`body` pre-filled, handing off to the user's email app
+- Toggle: **Send Email** (no runtime permission; requires a `mailto:`-capable app installed — otherwise the toggle surfaces `"no-email-client"`)
 
 ### Calendar
 
