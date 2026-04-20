@@ -24,7 +24,7 @@ Because the PWA is served remotely, this repo has no build-time dependency on `p
 
 ### Access modes
 
-This app only supports **Server mode** (via `app.palmier.me`). LAN mode is browser-only — the WebView would block cleartext `http://<host-ip>:<port>` requests as mixed content. Users on LAN open the PWA from Chrome/Safari directly.
+This app uses **Server mode** as the baseline (events flow through the cloud relay over NATS). When the phone is on the same LAN as the host, it transparently routes RPC over direct HTTP to the host's LAN URL — **auto-LAN** — for lower latency. Events still go through the relay regardless. Browser PWAs can't use auto-LAN because of Private Network Access / mixed-content rules; only this native app can. **Local mode** (loopback `http://localhost:<port>`) is host-machine-only and not relevant here.
 
 ### Deep links
 
