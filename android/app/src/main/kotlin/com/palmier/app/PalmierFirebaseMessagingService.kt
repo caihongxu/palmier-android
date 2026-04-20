@@ -125,6 +125,7 @@ class PalmierFirebaseMessagingService : FirebaseMessagingService() {
     private fun showNotification(data: Map<String, String>) {
         val title = data["title"] ?: "Palmier"
         val body = data["body"] ?: return
+        val hostId = data["host_id"]
         val taskId = data["task_id"]
         val sessionId = data["session_id"]
         val runId = data["run_id"]
@@ -137,9 +138,11 @@ class PalmierFirebaseMessagingService : FirebaseMessagingService() {
 
         ensureNotificationChannel()
 
+        val hostPrefix = if (hostId != null) "/hosts/$hostId" else ""
         val deepLink = when {
-            taskId != null && runId != null -> "/runs/$taskId/$runId"
-            taskId != null -> "/runs/$taskId/latest"
+            hostPrefix.isNotEmpty() && taskId != null && runId != null -> "$hostPrefix/runs/$taskId/$runId"
+            hostPrefix.isNotEmpty() && taskId != null -> "$hostPrefix/runs/$taskId/latest"
+            hostPrefix.isNotEmpty() -> hostPrefix
             else -> "/"
         }
 

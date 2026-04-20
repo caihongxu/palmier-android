@@ -28,7 +28,7 @@ This app only supports **Server mode** (via `app.palmier.me`). LAN mode is brows
 
 ### Deep links
 
-FCM notification taps pass a relative path (e.g. `/runs/:taskId/:runId`) via an Intent extra. `MainActivity.handleDeepLink` evaluates `window.location.href='<path>'` inside the WebView, which resolves against `https://app.palmier.me`. No external `intent-filter` is registered.
+FCM notification taps pass a host-scoped relative path (e.g. `/hosts/:hostId/runs/:taskId/:runId`) via an Intent extra. Scoping to the host ensures the PWA switches to the originating host instead of opening the deep link against whatever host is currently selected. `MainActivity.handleDeepLink` evaluates `window.location.href='<path>'` inside the WebView, which resolves against `https://app.palmier.me`. No external `intent-filter` is registered.
 
 ## Development Workflow
 
