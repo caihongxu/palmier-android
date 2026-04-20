@@ -16,37 +16,6 @@ npx cap sync          # syncs native plugins + offline fallback into Android pro
 npx cap open android  # opens in Android Studio
 ```
 
-## How the WebView Loads
-
-`capacitor.config.json` sets `server.url` to `https://app.palmier.me`. On launch, the WebView fetches the PWA from the cloud. When the device is offline the WebView falls back to `www/offline.html` (configured via `server.errorPath`), which shows a "you're offline" screen and auto-reloads when connectivity returns.
-
-Because the PWA is served remotely, this repo has no build-time dependency on `palmier-server`. Release builds run `npx cap sync` only — no PWA build step.
-
-### Access modes
-
-This app uses **Server mode** as the baseline (events flow through the cloud relay over NATS). When the phone is on the same LAN as the host, it transparently routes RPC over direct HTTP to the host's LAN URL — **auto-LAN** — for lower latency. Events still go through the relay regardless. Browser PWAs can't use auto-LAN because of Private Network Access / mixed-content rules; only this native app can. **Local mode** (loopback `http://localhost:<port>`) is host-machine-only and not relevant here.
-
-### Deep links
-
-FCM notification taps pass a host-scoped relative path (e.g. `/hosts/:hostId/runs/:taskId/:runId`) via an Intent extra. Scoping to the host ensures the PWA switches to the originating host instead of opening the deep link against whatever host is currently selected. `MainActivity.handleDeepLink` evaluates `window.location.href='<path>'` inside the WebView, which resolves against `https://app.palmier.me`. No external `intent-filter` is registered.
-
-## Development Workflow
-
-1. Make changes to the PWA in `palmier-server/pwa/` and deploy to `app.palmier.me`.
-2. Reload the app — changes are live (no rebuild, no `cap sync`).
-3. Only rebuild the APK when you change native Kotlin code, Capacitor plugins, `capacitor.config.json`, or `www/offline.html`.
-
-## Releases
-
-Release APKs are built automatically via GitHub Actions when a version tag is pushed:
-
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-The workflow runs `npm ci && npx cap sync`, then builds a signed APK and creates a GitHub release. See `.github/workflows/release.yml`.
-
 ## Native Features
 
 All device capabilities work in the background via FCM data messages — the app doesn't need to be in the foreground. Each capability is toggled on/off from the drawer when this device is the host's **linked device** (the one device the host talks to for SMS, contacts, location, etc.). Toggle state is stored in `CapacitorStorage` SharedPreferences and consulted by `CapabilityState.isEnabled` before every handler executes, regardless of what the host requests.
@@ -130,24 +99,6 @@ A single custom Capacitor plugin (`Device`) exposes the entire native surface to
 | `getInstalledApps()` | Enumerate launcher apps for the notification-trigger picker. |
 | `addListener("deepLink", handler)` | Event channel for FCM notification taps. Native emits `{path}`; the PWA's router handles it client-side (no more `evaluateJavascript`). |
 
-## Project Structure
+## License
 
-- `www/offline.html` — offline fallback page (shown when `app.palmier.me` is unreachable)
-- `android/` — native Android project (Capacitor-managed)
-- `android/app/src/main/kotlin/com/palmier/app/` — native Kotlin code
-  - `MainActivity.kt` — plugin registration, POST_NOTIFICATIONS prompt, deep-link buffering
-  - `DevicePlugin.kt` — the unified Capacitor plugin (permissions, FCM token, capability gating, deep-link events)
-  - `CapabilityState.kt` — reads/writes the local enabled-capabilities set (with legacy fallback for upgrades from the pre-`Device` APK)
-  - `PalmierFirebaseMessagingService.kt` — FCM message handling, dispatch, background token re-registration
-  - `GeolocationForegroundService.kt` — background GPS fetch
-  - `DeviceNotificationListenerService.kt` — device notification capture
-  - `SmsBroadcastReceiver.kt` — incoming SMS capture
-  - `SmsHandler.kt` — send SMS
-  - `ContactsHandler.kt` — read/create contacts
-  - `CalendarHandler.kt` — read/create calendar events
-  - `AlarmHandler.kt` / `AlarmActivity.kt` — full-screen alarm popup with looping ringtone
-  - `BatteryHandler.kt` — read battery
-  - `RingerHandler.kt` — set ringer mode
-  - `NotificationActionReceiver.kt` — push notification action buttons
-- `capacitor.config.json` — Capacitor configuration (remote `server.url` + offline `errorPath`)
-- `.github/workflows/release.yml` — automated APK release workflow
+Licensed under the Apache License 2.0. See [LICENSE](LICENSE) for the full text.
