@@ -149,7 +149,7 @@ class DevicePlugin : Plugin() {
             "location" -> ensureLocation(call, capability)
             "notifications" -> ensureSettings(call, capability, "notificationListener", Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
             "dnd" -> ensureSettings(call, capability, "dnd", Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
-            "alarm" -> ensureFullScreenIntent(call, capability)
+            "alarm" -> ensureAlarm(call, capability)
         }
     }
 
@@ -235,7 +235,30 @@ class DevicePlugin : Plugin() {
         startSettingsRoundTrip(call, capability, type, intent)
     }
 
-    private fun ensureFullScreenIntent(call: PluginCall, capability: String) {
+    // Alarms post a notification with full-screen intent. Both POST_NOTIFICATIONS
+    // (runtime, Tiramisu+) and USE_FULL_SCREEN_INTENT (auto-granted, can be
+    // revoked on Android 14+) must be granted; deny either and the alarm
+    // silently never fires.
+    private fun ensureAlarm(call: PluginCall, capability: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !isGranted("postNotifications")) {
+            call.data.put("capability", capability)
+            requestPermissionForAlias("postNotifications", call, "onAlarmNotificationsResult")
+            return
+        }
+        finishAlarmFullScreenStep(call, capability)
+    }
+
+    @PermissionCallback
+    private fun onAlarmNotificationsResult(call: PluginCall) {
+        val capability = call.getString("capability") ?: return call.reject("missing capability")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !isGranted("postNotifications")) {
+            call.resolve(disabledResult("denied"))
+            return
+        }
+        finishAlarmFullScreenStep(call, capability)
+    }
+
+    private fun finishAlarmFullScreenStep(call: PluginCall, capability: String) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || isGranted("fullScreenIntent")) {
             CapabilityState.enable(context, capability)
             call.resolve(enabledResult())
@@ -287,21 +310,21 @@ class DevicePlugin : Plugin() {
     private fun pruneRevokedCapabilities() {
         val current = CapabilityState.get(context)
         if (current.isEmpty()) return
-        val pruned = current.filter { cap -> isGranted(permissionForCapability(cap) ?: return@filter true) }.toSet()
+        val pruned = current.filter { cap -> permissionsForCapability(cap).all { isGranted(it) } }.toSet()
         if (pruned.size != current.size) CapabilityState.set(context, pruned)
     }
 
-    private fun permissionForCapability(capability: String): String? = when (capability) {
-        "sms-read" -> "smsRead"
-        "sms-send" -> "smsSend"
-        "send-email" -> "postNotifications"
-        "notifications" -> "notificationListener"
-        "contacts" -> "contacts"
-        "calendar" -> "calendar"
-        "location" -> "location"
-        "dnd" -> "dnd"
-        "alarm" -> "fullScreenIntent"
-        else -> null
+    private fun permissionsForCapability(capability: String): List<String> = when (capability) {
+        "sms-read" -> listOf("smsRead")
+        "sms-send" -> listOf("smsSend")
+        "send-email" -> listOf("postNotifications")
+        "notifications" -> listOf("notificationListener")
+        "contacts" -> listOf("contacts")
+        "calendar" -> listOf("calendar")
+        "location" -> listOf("location")
+        "dnd" -> listOf("dnd")
+        "alarm" -> listOf("postNotifications", "fullScreenIntent")
+        else -> emptyList()
     }
 
     fun emitDeepLink(path: String) {
