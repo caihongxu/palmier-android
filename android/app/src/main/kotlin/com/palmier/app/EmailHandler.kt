@@ -25,6 +25,11 @@ object EmailHandler {
         val cc = data["cc"] ?: ""
         val bcc = data["bcc"] ?: ""
 
+        if (!CapabilityState.isEnabled(context, "send-email")) {
+            postResponse(requestId, hostId, JSONObject().put("error", "Send Email capability is disabled on this device"))
+            return
+        }
+
         Thread {
             try {
                 val notificationId = "email:$requestId".hashCode()

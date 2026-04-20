@@ -59,17 +59,18 @@ class DevicePlugin : Plugin() {
     companion object {
         const val EVENT_DEEP_LINK = "deepLink"
 
-        // PWA is served remotely and can ship ahead of the APK, so unknown types
-        // must resolve as unsupported rather than throw.
-        val SUPPORTED_TYPES: Set<String> = setOf(
-            "location", "smsRead", "smsSend", "contacts", "calendar",
-            "notificationListener", "dnd", "fullScreenIntent",
-            "postNotifications",
+        // PWA may ship ahead of the APK; capabilities outside this list resolve as
+        // unsupported instead of throwing.
+        val KNOWN_CAPABILITIES: List<String> = listOf(
+            "sms-read", "sms-send", "send-email",
+            "notifications", "contacts", "calendar",
+            "location", "dnd", "alarm",
         )
     }
 
-    private var pendingSettingsCall: PluginCall? = null
-    private var pendingSettingsType: String? = null
+    private var pendingCapabilityCall: PluginCall? = null
+    private var pendingCapabilityName: String? = null
+    private var pendingCapabilityPermType: String? = null
 
     @PluginMethod
     fun getFcmToken(call: PluginCall) {
@@ -102,118 +103,142 @@ class DevicePlugin : Plugin() {
         }.start()
     }
 
-    // Requires the matching <queries> entry in AndroidManifest on Android 11+.
     @PluginMethod
-    fun hasEmailClient(call: PluginCall) {
-        val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:test@example.com"))
-        val available = intent.resolveActivity(context.packageManager) != null
-        call.resolve(JSObject().put("available", available).put("supported", true))
+    fun getCapabilityStatus(call: PluginCall) {
+        val enabledSet = CapabilityState.get(context)
+        val arr = JSArray()
+        for (cap in KNOWN_CAPABILITIES) {
+            arr.put(
+                JSObject()
+                    .put("name", cap)
+                    .put("enabled", cap in enabledSet)
+                    .put("supported", true)
+            )
+        }
+        call.resolve(JSObject().put("capabilities", arr))
     }
 
     @PluginMethod
-    fun setEnabledCapabilities(call: PluginCall) {
-        val arr = call.getArray("capabilities") ?: return call.reject("missing capabilities")
-        val set = (0 until arr.length()).mapNotNull { arr.optString(it).takeIf { s -> s.isNotEmpty() } }.toSet()
-        CapabilityState.set(context, set)
-        call.resolve()
-    }
+    fun setCapabilityEnabled(call: PluginCall) {
+        val capability = call.getString("capability") ?: return call.reject("missing capability")
+        val enabled = call.getBoolean("enabled") ?: return call.reject("missing enabled")
 
-    @PluginMethod
-    fun getSupportedPermissions(call: PluginCall) {
-        val arr = com.getcapacitor.JSArray()
-        SUPPORTED_TYPES.forEach { arr.put(it) }
-        call.resolve(JSObject().put("types", arr))
-    }
-
-    @PluginMethod
-    fun checkPermission(call: PluginCall) {
-        val type = call.getString("type") ?: return call.reject("missing type")
-        if (type !in SUPPORTED_TYPES) {
-            call.resolve(JSObject().put("granted", false).put("supported", false))
+        if (capability !in KNOWN_CAPABILITIES) {
+            call.resolve(disabledResult("unsupported"))
             return
         }
-        call.resolve(JSObject().put("granted", isGranted(type)).put("supported", true))
-    }
 
-    @PluginMethod
-    fun requestPermission(call: PluginCall) {
-        val type = call.getString("type") ?: return call.reject("missing type")
-        if (type !in SUPPORTED_TYPES) {
-            call.resolve(JSObject().put("granted", false).put("supported", false))
+        if (!enabled) {
+            CapabilityState.disable(context, capability)
+            call.resolve(disabledResult())
             return
         }
-        when (type) {
-            "location" -> requestLocation(call)
-            "smsRead", "smsSend", "contacts", "calendar" -> requestRuntime(type, call)
-            "postNotifications" -> requestPostNotifications(call)
-            "notificationListener" -> openSettings(call, type, Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-            "dnd" -> openSettings(call, type, Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
-            "fullScreenIntent" -> requestFullScreenIntent(call)
+
+        when (capability) {
+            "send-email" -> {
+                if (!hasEmailClient()) {
+                    call.resolve(disabledResult("no-email-client"))
+                    return
+                }
+                ensurePostNotifications(call, capability)
+            }
+            "sms-read" -> ensureRuntime(call, capability, "smsRead")
+            "sms-send" -> ensureRuntime(call, capability, "smsSend")
+            "contacts" -> ensureRuntime(call, capability, "contacts")
+            "calendar" -> ensureRuntime(call, capability, "calendar")
+            "location" -> ensureLocation(call, capability)
+            "notifications" -> ensureSettings(call, capability, "notificationListener", Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+            "dnd" -> ensureSettings(call, capability, "dnd", Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
+            "alarm" -> ensureFullScreenIntent(call, capability)
         }
     }
 
-    private fun requestRuntime(type: String, call: PluginCall) {
-        if (isGranted(type)) {
-            call.resolve(grantedResult(true))
+    private fun ensureRuntime(call: PluginCall, capability: String, alias: String) {
+        if (isGranted(alias)) {
+            CapabilityState.enable(context, capability)
+            call.resolve(enabledResult())
             return
         }
-        call.data.put("type", type)
-        requestPermissionForAlias(type, call, "onRuntimeResult")
+        call.data.put("capability", capability)
+        call.data.put("alias", alias)
+        requestPermissionForAlias(alias, call, "onRuntimeResult")
     }
 
     @PermissionCallback
     private fun onRuntimeResult(call: PluginCall) {
-        val type = call.getString("type") ?: return call.reject("missing type")
-        call.resolve(grantedResult(isGranted(type)))
+        val capability = call.getString("capability") ?: return call.reject("missing capability")
+        val alias = call.getString("alias") ?: return call.reject("missing alias")
+        if (isGranted(alias)) {
+            CapabilityState.enable(context, capability)
+            call.resolve(enabledResult())
+        } else {
+            call.resolve(disabledResult("denied"))
+        }
     }
 
-    private fun requestLocation(call: PluginCall) {
-        val fine = isManifestPermissionGranted(Manifest.permission.ACCESS_FINE_LOCATION)
-        if (!fine) {
+    private fun ensurePostNotifications(call: PluginCall, capability: String) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || isGranted("postNotifications")) {
+            CapabilityState.enable(context, capability)
+            call.resolve(enabledResult())
+            return
+        }
+        ensureRuntime(call, capability, "postNotifications")
+    }
+
+    private fun ensureLocation(call: PluginCall, capability: String) {
+        if (!isManifestPermissionGranted(Manifest.permission.ACCESS_FINE_LOCATION)) {
+            call.data.put("capability", capability)
             requestPermissionForAlias("location", call, "onLocationFineResult")
             return
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !isManifestPermissionGranted(Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
+            call.data.put("capability", capability)
             requestPermissionForAlias("backgroundLocation", call, "onLocationBackgroundResult")
             return
         }
-        call.resolve(grantedResult(true))
+        CapabilityState.enable(context, capability)
+        call.resolve(enabledResult())
     }
 
     @PermissionCallback
     private fun onLocationFineResult(call: PluginCall) {
+        val capability = call.getString("capability") ?: return call.reject("missing capability")
         if (!isManifestPermissionGranted(Manifest.permission.ACCESS_FINE_LOCATION)) {
-            call.resolve(grantedResult(false))
+            call.resolve(disabledResult("denied"))
             return
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !isManifestPermissionGranted(Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
             requestPermissionForAlias("backgroundLocation", call, "onLocationBackgroundResult")
             return
         }
-        call.resolve(grantedResult(true))
+        CapabilityState.enable(context, capability)
+        call.resolve(enabledResult())
     }
 
     @PermissionCallback
     private fun onLocationBackgroundResult(call: PluginCall) {
-        call.resolve(grantedResult(isGranted("location")))
+        val capability = call.getString("capability") ?: return call.reject("missing capability")
+        if (isGranted("location")) {
+            CapabilityState.enable(context, capability)
+            call.resolve(enabledResult())
+        } else {
+            call.resolve(disabledResult("denied"))
+        }
     }
 
-    private fun requestPostNotifications(call: PluginCall) {
-        // Pre-Tiramisu POST_NOTIFICATIONS is auto-granted; skip the runtime prompt.
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            call.resolve(grantedResult(true))
+    private fun ensureSettings(call: PluginCall, capability: String, type: String, intent: Intent) {
+        if (isGranted(type)) {
+            CapabilityState.enable(context, capability)
+            call.resolve(enabledResult())
             return
         }
-        requestRuntime("postNotifications", call)
+        startSettingsRoundTrip(call, capability, type, intent)
     }
 
-    private fun requestFullScreenIntent(call: PluginCall) {
-        if (isGranted("fullScreenIntent")) {
-            call.resolve(grantedResult(true))
-            return
-        }
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            call.resolve(grantedResult(true))
+    private fun ensureFullScreenIntent(call: PluginCall, capability: String) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || isGranted("fullScreenIntent")) {
+            CapabilityState.enable(context, capability)
+            call.resolve(enabledResult())
             return
         }
         val intent = try {
@@ -227,12 +252,13 @@ class DevicePlugin : Plugin() {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
         }
-        openSettings(call, "fullScreenIntent", intent)
+        startSettingsRoundTrip(call, capability, "fullScreenIntent", intent)
     }
 
-    private fun openSettings(call: PluginCall, type: String, intent: Intent) {
-        pendingSettingsCall = call
-        pendingSettingsType = type
+    private fun startSettingsRoundTrip(call: PluginCall, capability: String, permType: String, intent: Intent) {
+        pendingCapabilityCall = call
+        pendingCapabilityName = capability
+        pendingCapabilityPermType = permType
         if (intent.flags and Intent.FLAG_ACTIVITY_NEW_TASK == 0) {
             intent.flags = intent.flags or Intent.FLAG_ACTIVITY_NEW_TASK
         }
@@ -241,19 +267,59 @@ class DevicePlugin : Plugin() {
 
     override fun handleOnResume() {
         super.handleOnResume()
-        val call = pendingSettingsCall ?: return
-        val type = pendingSettingsType ?: return
-        pendingSettingsCall = null
-        pendingSettingsType = null
-        call.resolve(grantedResult(isGranted(type)))
+        pruneRevokedCapabilities()
+        val call = pendingCapabilityCall ?: return
+        val capability = pendingCapabilityName ?: return
+        val permType = pendingCapabilityPermType ?: return
+        pendingCapabilityCall = null
+        pendingCapabilityName = null
+        pendingCapabilityPermType = null
+        if (isGranted(permType)) {
+            CapabilityState.enable(context, capability)
+            call.resolve(enabledResult())
+        } else {
+            call.resolve(disabledResult("denied"))
+        }
+    }
+
+    // Keeps the SharedPreferences kill-switch honest when the user revokes a
+    // permission in system Settings while the app is backgrounded.
+    private fun pruneRevokedCapabilities() {
+        val current = CapabilityState.get(context)
+        if (current.isEmpty()) return
+        val pruned = current.filter { cap -> isGranted(permissionForCapability(cap) ?: return@filter true) }.toSet()
+        if (pruned.size != current.size) CapabilityState.set(context, pruned)
+    }
+
+    private fun permissionForCapability(capability: String): String? = when (capability) {
+        "sms-read" -> "smsRead"
+        "sms-send" -> "smsSend"
+        "send-email" -> "postNotifications"
+        "notifications" -> "notificationListener"
+        "contacts" -> "contacts"
+        "calendar" -> "calendar"
+        "location" -> "location"
+        "dnd" -> "dnd"
+        "alarm" -> "fullScreenIntent"
+        else -> null
     }
 
     fun emitDeepLink(path: String) {
         notifyListeners(EVENT_DEEP_LINK, JSObject().put("path", path))
     }
 
-    private fun grantedResult(granted: Boolean): JSObject =
-        JSObject().put("granted", granted).put("supported", true)
+    private fun enabledResult(): JSObject = JSObject().put("enabled", true)
+
+    private fun disabledResult(reason: String? = null): JSObject {
+        val obj = JSObject().put("enabled", false)
+        if (reason != null) obj.put("reason", reason)
+        return obj
+    }
+
+    private fun hasEmailClient(): Boolean {
+        val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:test@example.com"))
+        return intent.resolveActivity(context.packageManager) != null
+    }
 
     private fun isManifestPermissionGranted(permission: String): Boolean =
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED

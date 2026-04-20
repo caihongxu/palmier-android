@@ -49,7 +49,7 @@ The workflow runs `npm ci && npx cap sync`, then builds a signed APK and creates
 
 ## Native Features
 
-All device capabilities work in the background via FCM data messages — the app doesn't need to be in the foreground. Each capability is toggled on/off in the app's settings menu.
+All device capabilities work in the background via FCM data messages — the app doesn't need to be in the foreground. Each capability is toggled on/off from the drawer when this device is the host's **linked device** (the one device the host talks to for SMS, contacts, location, etc.). Toggle state is stored in `CapacitorStorage` SharedPreferences and consulted by `CapabilityState.isEnabled` before every handler executes, regardless of what the host requests.
 
 ### FCM (Firebase Cloud Messaging)
 
@@ -125,9 +125,9 @@ A single custom Capacitor plugin (`Device`) exposes the entire native surface to
 | Method | Purpose |
 |--------|---------|
 | `getFcmToken()` | Fetch the device's Firebase token. Always fresh — the PWA no longer reads a cached copy from SharedPreferences. |
-| `getSupportedPermissions()` | List of permission types this APK understands. The PWA queries on mount and hides toggles whose permissions the installed APK can't fulfill — important because the PWA is served remotely and can ship ahead of the APK. |
-| `checkPermission({type})` / `requestPermission({type})` | Unified permission gate. `type` is one of `location`, `smsRead`, `smsSend`, `contacts`, `calendar`, `notificationListener`, `dnd`, `fullScreenIntent`. Returns `{granted, supported}`; unknown types resolve with `supported: false` rather than throwing. |
-| `setEnabledCapabilities({capabilities})` | Authoritative local whitelist — native receivers (`SmsBroadcastReceiver`, `DeviceNotificationListenerService`) and FCM handlers refuse to act on capabilities not in this list, even if the server asks. Persisted via `CapabilityState`. |
+| `getCapabilityStatus()` | Returns `{ capabilities: [{ name, enabled, supported }] }` — one entry per capability the APK knows about. The PWA renders only these; older APKs that don't yet support a capability simply omit it from the list (PWA ships ahead of the APK). |
+| `setCapabilityEnabled({capability, enabled})` | Atomically gates a single capability. With `enabled: true`, the plugin drives any required permission dialog or system-Settings round-trip, then writes `CapabilityState` only on grant. With `enabled: false`, removes from `CapabilityState` (no OS dialog). Returns `{ enabled, reason? }` — `reason` distinguishes `"denied"`, `"no-email-client"`, and `"unsupported"` so the PWA can show appropriate messaging. The plugin also prunes `CapabilityState` on every app resume so any permission revoked in system Settings flips the corresponding toggle off automatically. |
+| `getInstalledApps()` | Enumerate launcher apps for the notification-trigger picker. |
 | `addListener("deepLink", handler)` | Event channel for FCM notification taps. Native emits `{path}`; the PWA's router handles it client-side (no more `evaluateJavascript`). |
 
 ## Project Structure

@@ -19,14 +19,26 @@ object CapabilityState {
             .apply()
     }
 
+    fun enable(context: Context, capability: String) {
+        set(context, get(context) + capability)
+    }
+
+    fun disable(context: Context, capability: String) {
+        set(context, get(context) - capability)
+    }
+
     fun isEnabled(context: Context, capability: String): Boolean {
+        return capability in get(context)
+    }
+
+    fun get(context: Context): Set<String> {
         val json = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(KEY, null) ?: return false
+            .getString(KEY, null) ?: return emptySet()
         return try {
             val arr = JSONArray(json)
-            (0 until arr.length()).any { arr.getString(it) == capability }
+            (0 until arr.length()).mapNotNull { arr.optString(it).takeIf { s -> s.isNotEmpty() } }.toSet()
         } catch (_: Exception) {
-            false
+            emptySet()
         }
     }
 }

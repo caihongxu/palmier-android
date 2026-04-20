@@ -22,6 +22,11 @@ object AlarmHandler {
         val title = data["title"] ?: "Alarm"
         val description = data["description"] ?: ""
 
+        if (!CapabilityState.isEnabled(context, "alarm")) {
+            postResponse(requestId, hostId, JSONObject().put("error", "Trigger Alarms capability is disabled on this device"))
+            return
+        }
+
         Thread {
             try {
                 ensureChannel(context)

@@ -17,6 +17,11 @@ object RingerHandler {
         val hostId = data["hostId"] ?: return
         val mode = data["mode"]
 
+        if (!CapabilityState.isEnabled(context, "dnd")) {
+            postResponse(requestId, hostId, JSONObject().put("error", "Set Ringer Mode capability is disabled on this device"))
+            return
+        }
+
         Thread {
             try {
                 val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager

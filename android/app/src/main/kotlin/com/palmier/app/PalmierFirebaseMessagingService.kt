@@ -59,6 +59,11 @@ class PalmierFirebaseMessagingService : FirebaseMessagingService() {
         val requestId = data["requestId"] ?: return
         val hostId = data["hostId"] ?: return
 
+        if (!CapabilityState.isEnabled(this, "location")) {
+            Log.d(TAG, "Geolocation request dropped — capability disabled on this device")
+            return
+        }
+
         Log.d(TAG, "Geolocation request: $requestId")
         val intent = Intent(this, GeolocationForegroundService::class.java).apply {
             putExtra("requestId", requestId)
