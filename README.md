@@ -1,6 +1,6 @@
 # Palmier Android
 
-Native Android wrapper for the Palmier PWA, built with [Capacitor](https://capacitorjs.com/). The WebView loads directly from [app.palmier.me](https://app.palmier.me), so PWA changes ship instantly with no APK rebuild. The app provides native capabilities the web layer can't access in the background — FCM push, GPS, contacts, calendar, SMS, email, alarms, battery, ringer control, and device notifications.
+Native Android wrapper for the [Palmier](https://github.com/caihongxu/palmier) PWA, built with [Capacitor](https://capacitorjs.com/). The WebView loads directly from [app.palmier.me](https://app.palmier.me), so PWA changes ship instantly with no APK rebuild. The app provides native capabilities the web layer can't access in the background — FCM push, GPS, contacts, calendar, SMS, email, alarms, battery, ringer control, and device notifications.
 
 ## Prerequisites
 
