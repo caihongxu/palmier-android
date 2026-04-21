@@ -1,6 +1,7 @@
 # Palmier Android
 
 [![Release APK](https://github.com/caihongxu/palmier-android/actions/workflows/release.yml/badge.svg)](https://github.com/caihongxu/palmier-android/actions/workflows/release.yml)
+[![license](https://img.shields.io/github/license/caihongxu/palmier-android)](https://github.com/caihongxu/palmier-android/blob/master/LICENSE)
 
 **[⬇ Download the latest APK](https://github.com/caihongxu/palmier-android/releases/latest)**
 
