@@ -64,7 +64,7 @@ Compose an email from the agent — the user taps a notification to review and s
 
 - `EmailHandler` — posts a "Pending email" notification; tapping it launches `EmailActivity`
 - `EmailActivity` — fires an `ACTION_SENDTO` `mailto:` intent with `to`/`cc`/`bcc`/`subject`/`body` pre-filled, handing off to the user's email app
-- Toggle: **Send Email** (no runtime permission; requires a `mailto:`-capable app installed — otherwise the toggle surfaces `"no-email-client"`)
+- Toggle: **Prompt Email to Send** (no runtime permission; requires a `mailto:`-capable app installed — otherwise the toggle surfaces `"no-email-client"`)
 
 ### Calendar
 
