@@ -328,7 +328,7 @@ class DevicePlugin : Plugin() {
     }
 
     fun emitDeepLink(path: String) {
-        notifyListeners(EVENT_DEEP_LINK, JSObject().put("path", path))
+        notifyListeners(EVENT_DEEP_LINK, JSObject().put("path", path), true)
     }
 
     private fun enabledResult(): JSObject = JSObject().put("enabled", true)
