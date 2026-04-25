@@ -104,6 +104,8 @@ class PalmierFirebaseMessagingService : FirebaseMessagingService() {
 
         val tapIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("dismiss_host_id", hostId)
+            putExtra("dismiss_session_id", requestId)
         }
         val tapPending = PendingIntent.getActivity(
             this, notificationId + 2, tapIntent,
@@ -154,6 +156,9 @@ class PalmierFirebaseMessagingService : FirebaseMessagingService() {
         val tapIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("deepLink", deepLink)
+            if (hostId != null) putExtra("dismiss_host_id", hostId)
+            if (taskId != null) putExtra("dismiss_task_id", taskId)
+            if (sessionId != null) putExtra("dismiss_session_id", sessionId)
         }
         val tapPending = PendingIntent.getActivity(
             this, notificationId, tapIntent,
